@@ -33,3 +33,4 @@ The input of the program will be a file, and the output will be a compressed fil
 * https://www2.cs.duke.edu/csed/curious/compression/lzw.html
 * https://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-046j-design-and-analysis-of-algorithms-spring-2012/lecture-notes/MIT6_046JS12_lec19.pdf
 * https://en.wikipedia.org/wiki/Huffman_coding
+* http://warp.povusers.org/EfficientLZW/index.html
