@@ -11,8 +11,12 @@ const (
 	maxDictSize     uint16 = 65535
 )
 
+// ErrBadCompressedCode represents an error that occurs when the LZW decompression
+// algorithm finds a code that is not valid for the assumed compression algorithm.
 var ErrBadCompressedCode = errors.New("bad compression code")
 
+// Compress takes a slice of uncompressed bytes as input and returns a slice of
+// LZW codes that represent the compressed data.
 func Compress(uncompressed []byte) ([]uint16, error) {
 	createInitialDict := func() map[string]uint16 {
 		dictionary := make(map[string]uint16, initialDictSize)
@@ -52,6 +56,9 @@ func Compress(uncompressed []byte) ([]uint16, error) {
 	return compressed, nil
 }
 
+// Decompress takes in a slice of LZW codes representing some compressed data
+// and outputs the decompressed data as a slice of bytes.
+// An error is returned if the decompression algorithm finds a bad LZW code.
 func Decompress(compressed []uint16) ([]byte, error) {
 	createInitialDict := func() map[uint16][]byte {
 		dictionary := make(map[uint16][]byte, initialDictSize)
