@@ -8,7 +8,7 @@ I also wrote the first implementation of the LZW encoding/decoding algorithms us
 I actually had no prior experience about compression algorithms (apart from the names of some of the most used algorithms), which was a major contributing factor when choosing this topic. I feel like I have a good basic understanding about the LZW algorithm after reading about it.
 
 ## What's next
-I will most likely continue working with the LZW algorithm and try go get it to actually compress data instead of just encode it as integer codes.
+I will most likely start implementing the data structures used by the LZW compression and decompression. This should be fairly straightforward, so I should have time after that to start researching the Huffman coding more deeply.
 
 ## What has been problematic
 So far nothing has been problematic. The course assistant answered my question about the programming language to use very swiftly, so I could get to work right away.
