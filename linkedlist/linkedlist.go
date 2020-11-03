@@ -1,25 +1,31 @@
 package linkedlist
 
-type Node struct {
-	Value interface{}
-	next  *Node
+type node struct {
+	value interface{}
+	next  *node
 }
 
+// LinkedList is the main structure of the linked list.
 type LinkedList struct {
-	head *Node
-	tail *Node
+	head *node
+	tail *node
 	size int
 }
 
-func New(root *Node) *LinkedList {
+// New returns a pointer to a new LinkedList and sets root as the head and tail nodes.
+func New(root interface{}) *LinkedList {
+	n := &node{value: root}
+
 	return &LinkedList{
-		head: root,
+		head: n,
+		tail: n,
 		size: 1,
 	}
 }
 
+// Append appends the given value to the end of the list.
 func (ll *LinkedList) Append(value interface{}) {
-	newNode := &Node{Value: value}
+	newNode := &node{value: value}
 
 	if ll.size == 0 {
 		ll.head = newNode
@@ -32,62 +38,77 @@ func (ll *LinkedList) Append(value interface{}) {
 	ll.size++
 }
 
-func (ll *LinkedList) Remove(val interface{}) {
-	if ll.head.Value == val {
+// Remove removes value from the linked list.
+func (ll *LinkedList) Remove(value interface{}) {
+	if ll.head.value == value {
 		ll.head = ll.head.next
 	}
 
-	ll.remove(ll.head, val)
+	ll.remove(ll.head, value)
 
 	ll.size--
 }
 
-func (ll *LinkedList) Find(val interface{}) (interface{}, bool) {
-	result := find(ll.head, val)
+// Find finds the given value from the linked list and returns it if found.
+// A boolean value is returned indicating whether or not the value actually
+// exists in the linked list.
+func (ll *LinkedList) Find(value interface{}) (interface{}, bool) {
+	result := find(ll.head, value)
 	if result == nil {
 		return nil, false
 	}
 
-	return result.Value, true
+	return result.value, true
 }
 
-func (ll *LinkedList) Head() *Node {
-	return ll.head
+// Head returns the head of the linked list.
+func (ll *LinkedList) Head() interface{} {
+	if ll.head == nil {
+		return nil
+	}
+
+	return ll.head.value
 }
 
-func (ll *LinkedList) Tail() *Node {
-	return ll.tail
+// Tail returns the tail of the linked list.
+func (ll *LinkedList) Tail() interface{} {
+	if ll.tail == nil {
+		return nil
+	}
+
+	return ll.tail.value
 }
 
+// Size returns the number of elements in the linked list.
 func (ll *LinkedList) Size() int {
 	return ll.size
 }
 
-func find(node *Node, val interface{}) *Node {
-	if node == nil {
+func find(n *node, val interface{}) *node {
+	if n == nil {
 		return nil
 	}
 
-	if node.Value == val {
-		return node
+	if n.value == val {
+		return n
 	}
 
-	return find(node.next, val)
+	return find(n.next, val)
 }
 
-func (ll *LinkedList) remove(node *Node, val interface{}) {
-	if node == nil || node.next == nil {
+func (ll *LinkedList) remove(n *node, val interface{}) {
+	if n == nil || n.next == nil {
 		return
 	}
 
-	if node.next.Value == val {
-		if node.next == ll.tail {
-			ll.tail = node
+	if n.next.value == val {
+		if n.next == ll.tail {
+			ll.tail = n
 		}
 
-		node.next = node.next.next
+		n.next = n.next.next
 		return
 	}
 
-	ll.remove(node.next, val)
+	ll.remove(n.next, val)
 }

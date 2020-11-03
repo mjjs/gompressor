@@ -4,11 +4,10 @@ import (
 	"testing"
 )
 
-func TestNewStartsWithGivenNodeAndCorrectSize(t *testing.T) {
-	node := &Node{Value: 1}
-	ll := New(node)
+func TestNewStartsWithGivennodeAndCorrectSize(t *testing.T) {
+	ll := New(1)
 
-	if ll.head != node {
+	if ll.head.value != 1 {
 		t.Error("Expected head to be set correctly")
 	}
 
@@ -36,15 +35,14 @@ func TestAppend(t *testing.T) {
 		t.Errorf("Expected size to be 3, got %d", ll.size)
 	}
 
-	if ll.head.Value != 1 {
-		t.Errorf("Expected %v to be head, got %v", 1, ll.head.Value)
+	if ll.head.value != 1 {
+		t.Errorf("Expected %v to be head, got %v", 1, ll.head.value)
 	}
 
-	if ll.head.next.Value != 2 {
+	if ll.head.next.value != 2 {
 		t.Error("Expected elements to be appended into the list")
 	}
-
-	if ll.head.next.next.Value != 3 {
+	if ll.head.next.next.value != 3 {
 		t.Error("Expected elements to be appended into the list")
 	}
 }
@@ -58,7 +56,7 @@ func TestRemoveCanRemoveHead(t *testing.T) {
 
 	ll.Remove(1)
 
-	if ll.head.Value != 2 {
+	if ll.head.value != 2 {
 		t.Errorf("Expected %v to become head, got %v", 2, ll.head)
 	}
 }
@@ -72,8 +70,8 @@ func TestRemoveCanRemoveTail(t *testing.T) {
 
 	ll.Remove(3)
 
-	if ll.tail.Value != 2 {
-		t.Errorf("Expected %v to become tail, got %v", 2, ll.tail.Value)
+	if ll.tail.value != 2 {
+		t.Errorf("Expected %v to become tail, got %v", 2, ll.tail.value)
 	}
 }
 
@@ -94,22 +92,30 @@ func TestRemoveCanRemoveBetweenValues(t *testing.T) {
 func TestReturnsHeadCorrectly(t *testing.T) {
 	ll := &LinkedList{}
 
+	if ll.Head() != nil {
+		t.Errorf("Expected empty linked list's head to be nil, got %v", ll.Head())
+	}
+
 	ll.Append(1)
 	ll.Append(2)
 
-	if ll.Head().Value != 1 {
-		t.Errorf("Expected %v to be head, got %v", 1, ll.Head().Value)
+	if ll.Head() != 1 {
+		t.Errorf("Expected %v to be head, got %v", 1, ll.Head())
 	}
 }
 
 func TestReturnsTailCorrectly(t *testing.T) {
 	ll := &LinkedList{}
 
+	if ll.Tail() != nil {
+		t.Errorf("Expected empty linked list's tail to be nil, got %v", ll.Tail())
+	}
+
 	ll.Append(1)
 	ll.Append(2)
 
-	if ll.Tail().Value != 2 {
-		t.Errorf("Expected %v to be tail, got %v", 2, ll.Tail().Value)
+	if ll.Tail() != 2 {
+		t.Errorf("Expected %v to be tail, got %v", 2, ll.Tail())
 	}
 }
 
