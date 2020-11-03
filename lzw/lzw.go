@@ -3,7 +3,8 @@ package lzw
 import (
 	"errors"
 	"fmt"
-	"strings"
+
+	"github.com/mjjs/gompressor/bytevector"
 )
 
 const (
@@ -17,7 +18,7 @@ var ErrBadCompressedCode = errors.New("bad compression code")
 
 // Compress takes a slice of uncompressed bytes as input and returns a slice of
 // LZW codes that represent the compressed data.
-func Compress(uncompressed []byte) ([]uint16, error) {
+func Compress(uncompressed *bytevector.Bytevector) ([]uint16, error) {
 	createInitialDict := func() map[string]uint16 {
 		dictionary := make(map[string]uint16, initialDictSize)
 
@@ -31,26 +32,31 @@ func Compress(uncompressed []byte) ([]uint16, error) {
 	dictionary := createInitialDict()
 
 	compressed := []uint16{}
-	word := []byte{}
+	word := bytevector.New()
 
-	for _, byt := range uncompressed {
+	for i := 0; i < uncompressed.Size(); i++ {
 		if len(dictionary) == int(maxDictSize) {
 			dictionary = createInitialDict()
 		}
 
-		newWord := append(word, byt)
+		byt := uncompressed.MustGet(i)
+		newWord := word.AppendToCopy(byt)
 
-		if _, ok := dictionary[string(newWord)]; ok {
-			word = newWord
+		if _, ok := dictionary[newWord.String()]; ok {
+			word = bytevector.New(uint(newWord.Size()))
+
+			for j := 0; j < newWord.Size(); j++ {
+				word.MustSet(j, newWord.MustGet(j))
+			}
 		} else {
-			compressed = append(compressed, dictionary[string(word)])
-			dictionary[string(newWord)] = uint16(len(dictionary))
-			word = []byte{byt}
+			compressed = append(compressed, dictionary[word.String()])
+			dictionary[newWord.String()] = uint16(len(dictionary))
+			word = bytevector.New().AppendToCopy(byt)
 		}
 	}
 
-	if len(word) > 0 {
-		compressed = append(compressed, dictionary[string(word)])
+	if word.Size() > 0 {
+		compressed = append(compressed, dictionary[word.String()])
 	}
 
 	return compressed, nil
@@ -59,12 +65,14 @@ func Compress(uncompressed []byte) ([]uint16, error) {
 // Decompress takes in a slice of LZW codes representing some compressed data
 // and outputs the decompressed data as a slice of bytes.
 // An error is returned if the decompression algorithm finds a bad LZW code.
-func Decompress(compressed []uint16) ([]byte, error) {
-	createInitialDict := func() map[uint16][]byte {
-		dictionary := make(map[uint16][]byte, initialDictSize)
+func Decompress(compressed []uint16) (*bytevector.Bytevector, error) {
+	createInitialDict := func() map[uint16]*bytevector.Bytevector {
+		dictionary := make(map[uint16]*bytevector.Bytevector, initialDictSize)
 
 		for i := uint16(0); i < initialDictSize; i++ {
-			dictionary[i] = []byte{byte(i)}
+			bv := bytevector.New(1)
+			bv.MustSet(0, byte(i))
+			dictionary[i] = bv
 		}
 
 		return dictionary
@@ -72,33 +80,38 @@ func Decompress(compressed []uint16) ([]byte, error) {
 
 	dictionary := createInitialDict()
 
-	result := strings.Builder{}
-	word := []byte{}
+	result := bytevector.New()
+	word := bytevector.New()
 
 	for _, code := range compressed {
 		if len(dictionary) == int(maxDictSize) {
 			dictionary = createInitialDict()
 		}
 
-		entry := []byte{}
+		entry := bytevector.New()
 
 		if c, ok := dictionary[code]; ok {
-			entry = c[:len(c):len(c)]
-		} else if int(code) == len(dictionary) && len(word) > 0 {
-			entry = append(word, word[0])
+			entry = bytevector.New(uint(c.Size()))
+			for i := 0; i < c.Size(); i++ {
+				entry.MustSet(i, c.MustGet(i))
+			}
+		} else if int(code) == len(dictionary) && word.Size() > 0 {
+			entry = word.AppendToCopy(word.MustGet(0))
 		} else {
 			return nil, fmt.Errorf("%w: %d", ErrBadCompressedCode, code)
 		}
 
-		result.Write(entry)
+		for i := 0; i < entry.Size(); i++ {
+			result.Append(entry.MustGet(i))
+		}
 
-		if len(word) > 0 {
-			word = append(word, entry[0])
+		if word.Size() > 0 {
+			word = word.AppendToCopy(entry.MustGet(0))
 			dictionary[uint16(len(dictionary))] = word
 		}
 
 		word = entry
 	}
 
-	return []byte(result.String()), nil
+	return result, nil
 }

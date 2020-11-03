@@ -4,11 +4,13 @@ import (
 	"flag"
 	"log"
 
+	"github.com/mjjs/gompressor/bytevector"
 	"github.com/mjjs/gompressor/fileio"
 	"github.com/mjjs/gompressor/lzw"
 )
 
 func main() {
+	log.SetFlags(log.Lshortfile | log.LstdFlags)
 	encodeFlag := flag.Bool("encode", false, "Encode the given file")
 	decodeFlag := flag.Bool("decode", false, "Decode the given file")
 	inFlag := flag.String("in", "", "input file")
@@ -32,7 +34,12 @@ func main() {
 			log.Fatalf("Could not read input file: %s", err)
 		}
 
-		encoded, err := lzw.Compress(bytes)
+		bv := bytevector.New(uint(len(bytes)))
+		for i, b := range bytes {
+			bv.MustSet(i, b)
+		}
+
+		encoded, err := lzw.Compress(bv)
 		if err != nil {
 			log.Fatalf("Data compression failed: %s", err)
 		}
@@ -54,7 +61,12 @@ func main() {
 			log.Fatalf("Data decompression failed: %s", err)
 		}
 
-		err = fileio.WriteFile(bytes, *outFlag)
+		byts := []byte{}
+		for i := 0; i < bytes.Size(); i++ {
+			byts = append(byts, bytes.MustGet(i))
+		}
+
+		err = fileio.WriteFile(byts, *outFlag)
 		if err != nil {
 			log.Fatalf("Could not write decompressed file: %s", err)
 		}

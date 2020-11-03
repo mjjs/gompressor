@@ -3,6 +3,9 @@ package lzw
 import (
 	"reflect"
 	"testing"
+
+	"github.com/mjjs/gompressor/bytevector"
+	"github.com/mjjs/gompressor/fileio"
 )
 
 var compressTestCases = []struct {
@@ -27,7 +30,9 @@ var compressTestCases = []struct {
 
 func TestCompress(t *testing.T) {
 	for _, testCase := range compressTestCases {
-		actual, err := Compress(testCase.input)
+		bv := bytevector.New(0, uint(len(testCase.input)))
+		bv.Append(testCase.input...)
+		actual, err := Compress(bv)
 
 		if err != nil && !testCase.shouldError {
 			t.Errorf("%s: unexpected error %s", testCase.name, err)
@@ -44,19 +49,19 @@ func TestCompress(t *testing.T) {
 var decompressTestCases = []struct {
 	name           string
 	input          []uint16
-	expectedOutput []byte
+	expectedOutput *bytevector.Bytevector
 	shouldError    bool
 }{
 	{
 		name:           "Hello world",
 		input:          []uint16{72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100},
-		expectedOutput: []byte("Hello World"),
+		expectedOutput: bytevector.New().AppendToCopy([]byte("Hello World")...),
 		shouldError:    false,
 	},
 	{
 		name:           "Empty input",
 		input:          []uint16{},
-		expectedOutput: []byte{},
+		expectedOutput: bytevector.New(),
 		shouldError:    false,
 	},
 }
@@ -74,5 +79,35 @@ func TestDecompress(t *testing.T) {
 		if !reflect.DeepEqual(actual, testCase.expectedOutput) {
 			t.Errorf("%s\nexpected %+v\ngot %+v", testCase.name, testCase.expectedOutput, actual)
 		}
+	}
+}
+
+func TestDecompressedEqualsOriginal(t *testing.T) {
+	for _, filename := range []string{"../testdata/E.coli", "../testdata/world192.txt"} {
+		t.Run(filename, func(t *testing.T) {
+			byts, err := fileio.ReadFile(filename)
+			if err != nil {
+				t.Errorf("Expected no error, got %s", err)
+			}
+
+			original := bytevector.New(uint(len(byts)))
+			for i, byt := range byts {
+				original.MustSet(i, byt)
+			}
+
+			compressed, err := Compress(original)
+			if err != nil {
+				t.Errorf("Expected no error, got %s", err)
+			}
+
+			decompressed, err := Decompress(compressed)
+			if err != nil {
+				t.Errorf("Expected no error, got %s", err)
+			}
+
+			if reflect.DeepEqual(original, decompressed) {
+				t.Error("NOT OK")
+			}
+		})
 	}
 }
