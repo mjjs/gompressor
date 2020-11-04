@@ -11,19 +11,19 @@ import (
 var compressTestCases = []struct {
 	name           string
 	input          []byte
-	expectedOutput []uint16
+	expectedOutput *vector.Vector
 	shouldError    bool
 }{
 	{
 		name:           "Hello world",
 		input:          []byte("Hello World"),
-		expectedOutput: []uint16{72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100},
+		expectedOutput: vector.New().AppendToCopy(uint16(72), uint16(101), uint16(108), uint16(108), uint16(111), uint16(32), uint16(87), uint16(111), uint16(114), uint16(108), uint16(100)),
 		shouldError:    false,
 	},
 	{
 		name:           "Empty input",
 		input:          []byte{},
-		expectedOutput: []uint16{},
+		expectedOutput: vector.New(),
 		shouldError:    false,
 	},
 }
@@ -50,20 +50,20 @@ func TestCompress(t *testing.T) {
 
 var decompressTestCases = []struct {
 	name           string
-	input          []uint16
+	input          *vector.Vector
 	expectedOutput *vector.Vector
 	shouldError    bool
 }{
 	{
 		name:  "Hello world",
-		input: []uint16{72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100},
+		input: vector.New().AppendToCopy(uint16(72), uint16(101), uint16(108), uint16(108), uint16(111), uint16(32), uint16(87), uint16(111), uint16(114), uint16(108), uint16(100)),
 		expectedOutput: vector.New().AppendToCopy(byte('H'), byte('e'), byte('l'), byte('l'), byte('o'),
 			byte(' '), byte('W'), byte('o'), byte('r'), byte('l'), byte('d')),
 		shouldError: false,
 	},
 	{
 		name:           "Empty input",
-		input:          []uint16{},
+		input:          vector.New(),
 		expectedOutput: vector.New(),
 		shouldError:    false,
 	},

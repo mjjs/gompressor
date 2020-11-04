@@ -8,9 +8,11 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/mjjs/gompressor/vector"
 )
 
-func WriteLZWFile(codes []uint16, filename string) error {
+func WriteLZWFile(codes *vector.Vector, filename string) error {
 	absolutePath, err := filepath.Abs(filename)
 	if err != nil {
 		return err
@@ -24,9 +26,11 @@ func WriteLZWFile(codes []uint16, filename string) error {
 	defer file.Close()
 
 	writer := bufio.NewWriter(file)
-	for _, code := range codes {
+	for i := 0; i < codes.Size(); i++ {
+		code := codes.MustGet(i)
+
 		codeBytes := make([]byte, 2)
-		binary.BigEndian.PutUint16(codeBytes, code)
+		binary.BigEndian.PutUint16(codeBytes, code.(uint16))
 
 		_, err := writer.Write(codeBytes)
 
@@ -43,7 +47,7 @@ func WriteLZWFile(codes []uint16, filename string) error {
 	return writer.Flush()
 }
 
-func ReadLZWFile(filename string) ([]uint16, error) {
+func ReadLZWFile(filename string) (*vector.Vector, error) {
 	absolutePath, err := filepath.Abs(filename)
 	if err != nil {
 		return nil, err
@@ -56,7 +60,7 @@ func ReadLZWFile(filename string) ([]uint16, error) {
 
 	defer file.Close()
 
-	codes := []uint16{}
+	codes := vector.New()
 
 	for {
 		buf := make([]byte, 2)
@@ -70,7 +74,7 @@ func ReadLZWFile(filename string) ([]uint16, error) {
 
 		code := binary.BigEndian.Uint16(buf)
 
-		codes = append(codes, code)
+		codes.Append(code)
 	}
 
 	return codes, nil

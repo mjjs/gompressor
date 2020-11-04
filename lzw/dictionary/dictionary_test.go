@@ -110,3 +110,15 @@ func TestElementIsFoundAfterGrow(t *testing.T) {
 		t.Errorf("Expected %d got %d", val, v)
 	}
 }
+
+func TestReturnsSizeCorrectly(t *testing.T) {
+	dict := New()
+	if n := dict.Size(); n != 0 {
+		t.Errorf("Expected size to be %d, got %d", 0, n)
+	}
+
+	dict.Set("key", 123)
+	if n := dict.Size(); n != 1 {
+		t.Errorf("Expected size to be %d, got %d", 1, n)
+	}
+}

@@ -172,3 +172,16 @@ func TestString(t *testing.T) {
 		t.Errorf("Expected %+v, got %+v", input, actual)
 	}
 }
+
+func TestStringPanicsOnInvalidType(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Expected String to panic on types that are out of this project's scope")
+		}
+	}()
+
+	vec := New()
+	vec.Append(1, 2, 3)
+
+	_ = vec.String()
+}
