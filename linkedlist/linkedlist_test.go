@@ -147,3 +147,23 @@ func TestFind(t *testing.T) {
 		t.Error("Expected Find to return false when value does not exist in the list")
 	}
 }
+
+func TestForEach(t *testing.T) {
+	funcCalledTimes := 0
+
+	f := func(elem interface{}) {
+		funcCalledTimes++
+	}
+
+	ll := &LinkedList{}
+
+	ll.Append(1)
+	ll.Append(2)
+	ll.Append(3)
+
+	ll.ForEach(f)
+
+	if funcCalledTimes != ll.Size() {
+		t.Errorf("Expected ForEach to call given function %d times, got %d", ll.Size(), funcCalledTimes)
+	}
+}

@@ -44,9 +44,10 @@ func (ll *LinkedList) Remove(value interface{}) {
 		ll.head = ll.head.next
 	}
 
-	ll.remove(ll.head, value)
-
-	ll.size--
+	removed := ll.remove(ll.head, value)
+	if removed {
+		ll.size--
+	}
 }
 
 // Find finds the given value from the linked list and returns it if found.
@@ -84,6 +85,38 @@ func (ll *LinkedList) Size() int {
 	return ll.size
 }
 
+// ForEach executes f for each element in the list.
+func (ll *LinkedList) ForEach(f func(val interface{})) {
+	execFunc(ll.head, f)
+}
+
+func (ll *LinkedList) remove(n *node, val interface{}) bool {
+	if n == nil || n.next == nil {
+		return false
+	}
+
+	if n.next.value == val {
+		if n.next == ll.tail {
+			ll.tail = n
+		}
+
+		n.next = n.next.next
+		return true
+	}
+
+	return ll.remove(n.next, val)
+}
+
+func execFunc(n *node, f func(val interface{})) {
+	if n == nil {
+		return
+	}
+
+	f(n.value)
+
+	execFunc(n.next, f)
+}
+
 func find(n *node, val interface{}) *node {
 	if n == nil {
 		return nil
@@ -94,21 +127,4 @@ func find(n *node, val interface{}) *node {
 	}
 
 	return find(n.next, val)
-}
-
-func (ll *LinkedList) remove(n *node, val interface{}) {
-	if n == nil || n.next == nil {
-		return
-	}
-
-	if n.next.value == val {
-		if n.next == ll.tail {
-			ll.tail = n
-		}
-
-		n.next = n.next.next
-		return
-	}
-
-	ll.remove(n.next, val)
 }
