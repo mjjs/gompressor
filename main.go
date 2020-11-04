@@ -4,9 +4,9 @@ import (
 	"flag"
 	"log"
 
-	"github.com/mjjs/gompressor/bytevector"
 	"github.com/mjjs/gompressor/fileio"
 	"github.com/mjjs/gompressor/lzw"
+	"github.com/mjjs/gompressor/vector"
 )
 
 func main() {
@@ -34,7 +34,7 @@ func main() {
 			log.Fatalf("Could not read input file: %s", err)
 		}
 
-		bv := bytevector.New(uint(len(bytes)))
+		bv := vector.New(uint(len(bytes)))
 		for i, b := range bytes {
 			bv.MustSet(i, b)
 		}
@@ -63,7 +63,7 @@ func main() {
 
 		byts := []byte{}
 		for i := 0; i < bytes.Size(); i++ {
-			byts = append(byts, bytes.MustGet(i))
+			byts = append(byts, bytes.MustGet(i).(byte))
 		}
 
 		err = fileio.WriteFile(byts, *outFlag)

@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/mjjs/gompressor/bytevector"
 	"github.com/mjjs/gompressor/fileio"
+	"github.com/mjjs/gompressor/vector"
 )
 
 var compressTestCases = []struct {
@@ -30,8 +30,10 @@ var compressTestCases = []struct {
 
 func TestCompress(t *testing.T) {
 	for _, testCase := range compressTestCases {
-		bv := bytevector.New(0, uint(len(testCase.input)))
-		bv.Append(testCase.input...)
+		bv := vector.New(0, uint(len(testCase.input)))
+		for _, b := range testCase.input {
+			bv.Append(b)
+		}
 		actual, err := Compress(bv)
 
 		if err != nil && !testCase.shouldError {
@@ -49,19 +51,20 @@ func TestCompress(t *testing.T) {
 var decompressTestCases = []struct {
 	name           string
 	input          []uint16
-	expectedOutput *bytevector.Bytevector
+	expectedOutput *vector.Vector
 	shouldError    bool
 }{
 	{
-		name:           "Hello world",
-		input:          []uint16{72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100},
-		expectedOutput: bytevector.New().AppendToCopy([]byte("Hello World")...),
-		shouldError:    false,
+		name:  "Hello world",
+		input: []uint16{72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100},
+		expectedOutput: vector.New().AppendToCopy(byte('H'), byte('e'), byte('l'), byte('l'), byte('o'),
+			byte(' '), byte('W'), byte('o'), byte('r'), byte('l'), byte('d')),
+		shouldError: false,
 	},
 	{
 		name:           "Empty input",
 		input:          []uint16{},
-		expectedOutput: bytevector.New(),
+		expectedOutput: vector.New(),
 		shouldError:    false,
 	},
 }
@@ -90,7 +93,7 @@ func TestDecompressedEqualsOriginal(t *testing.T) {
 				t.Errorf("Expected no error, got %s", err)
 			}
 
-			original := bytevector.New(uint(len(byts)))
+			original := vector.New(uint(len(byts)))
 			for i, byt := range byts {
 				original.MustSet(i, byt)
 			}

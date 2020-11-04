@@ -1,4 +1,4 @@
-package bytevector
+package vector
 
 import (
 	"testing"
@@ -78,7 +78,7 @@ func TestAppendToCopyCreatesNewCopy(t *testing.T) {
 
 var setAndGetTestCases = []struct {
 	name        string
-	vector      *Bytevector
+	vector      *Vector
 	index       int
 	shouldError bool
 }{
@@ -114,7 +114,7 @@ func TestSetAndGet(t *testing.T) {
 
 var mustSetAndGetTestCases = []struct {
 	name        string
-	vector      *Bytevector
+	vector      *Vector
 	index       int
 	input       byte
 	shouldPanic bool
