@@ -20,7 +20,7 @@ var ErrBadCompressedCode = errors.New("bad compression code")
 // Compress takes a slice of uncompressed bytes as input and returns a slice of
 // LZW codes that represent the compressed data.
 func Compress(uncompressed *vector.Vector) (*vector.Vector, error) {
-	createInitialDict := func() *dictionary.Dictionary {
+	createInitialDictionary := func() *dictionary.Dictionary {
 		dict := dictionary.NewWithSize(uint(initialDictSize))
 
 		for i := uint16(0); i < initialDictSize; i++ {
@@ -30,14 +30,14 @@ func Compress(uncompressed *vector.Vector) (*vector.Vector, error) {
 		return dict
 	}
 
-	dict := createInitialDict()
+	dict := createInitialDictionary()
 
 	compressed := vector.New()
 	word := vector.New()
 
 	for i := 0; i < uncompressed.Size(); i++ {
 		if dict.Size() == int(maxDictSize) {
-			dict = createInitialDict()
+			dict = createInitialDictionary()
 		}
 
 		byt := uncompressed.MustGet(i)
@@ -70,7 +70,7 @@ func Compress(uncompressed *vector.Vector) (*vector.Vector, error) {
 // and outputs the decompressed data as a slice of bytes.
 // An error is returned if the decompression algorithm finds a bad LZW code.
 func Decompress(compressed *vector.Vector) (*vector.Vector, error) {
-	createInitialDict := func() *dictionary.Dictionary {
+	createInitialDictionary := func() *dictionary.Dictionary {
 		dict := dictionary.NewWithSize(uint(initialDictSize))
 
 		for i := uint16(0); i < initialDictSize; i++ {
@@ -82,28 +82,28 @@ func Decompress(compressed *vector.Vector) (*vector.Vector, error) {
 		return dict
 	}
 
-	dictionary := createInitialDict()
+	dict := createInitialDictionary()
 
 	result := vector.New()
 	word := vector.New()
 
 	for i := 0; i < compressed.Size(); i++ {
-		if dictionary.Size() == int(maxDictSize) {
-			dictionary = createInitialDict()
+		if dict.Size() == int(maxDictSize) {
+			dict = createInitialDictionary()
 		}
 
 		code := compressed.MustGet(i)
 
 		entry := vector.New()
 
-		if c, ok := dictionary.Get(code); ok {
+		if c, ok := dict.Get(code); ok {
 			byteVector := c.(*vector.Vector)
 
 			entry = vector.New(uint(byteVector.Size()))
 			for i := 0; i < byteVector.Size(); i++ {
 				entry.MustSet(i, byteVector.MustGet(i))
 			}
-		} else if int(code.(uint16)) == dictionary.Size() && word.Size() > 0 {
+		} else if int(code.(uint16)) == dict.Size() && word.Size() > 0 {
 			entry = word.AppendToCopy(word.MustGet(0))
 		} else {
 			return nil, fmt.Errorf("%w: %d", ErrBadCompressedCode, code)
@@ -115,7 +115,7 @@ func Decompress(compressed *vector.Vector) (*vector.Vector, error) {
 
 		if word.Size() > 0 {
 			word = word.AppendToCopy(entry.MustGet(0))
-			dictionary.Set(uint16(dictionary.Size()), word)
+			dict.Set(uint16(dict.Size()), word)
 		}
 
 		word = entry
