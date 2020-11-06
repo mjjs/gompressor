@@ -6,30 +6,25 @@ import (
 
 func TestDequeueReturnsSmallestPriorityFirst(t *testing.T) {
 	pq := &PriorityQueue{}
-	pq.Enqueue(1, "1")
-	pq.Enqueue(3, "3")
-	pq.Enqueue(5, "5")
-	pq.Enqueue(4, "4")
-	pq.Enqueue(5, "5")
+	pq.Enqueue(1, 1)
+	pq.Enqueue(2, 2)
+	pq.Enqueue(1, 3)
+	pq.Enqueue(5, 4)
 
-	if val := pq.Dequeue(); val != "1" {
-		t.Errorf("Expected %s, got %v", "1", val)
+	if val := pq.Dequeue(); val != 1 {
+		t.Errorf("Expected %d, got %v", 1, val)
 	}
 
-	if val := pq.Dequeue(); val != "3" {
-		t.Errorf("Expected %s, got %v", "3", val)
+	if val := pq.Dequeue(); val != 3 {
+		t.Errorf("Expected %d, got %v", 3, val)
 	}
 
-	if val := pq.Dequeue(); val != "4" {
-		t.Errorf("Expected %s, got %v", "4", val)
+	if val := pq.Dequeue(); val != 2 {
+		t.Errorf("Expected %d, got %v", 4, val)
 	}
 
-	if val := pq.Dequeue(); val != "5" {
-		t.Errorf("Expected %s, got %v", "5", val)
-	}
-
-	if val := pq.Dequeue(); val != "5" {
-		t.Errorf("Expected %s, got %v", "5", val)
+	if val := pq.Dequeue(); val != 4 {
+		t.Errorf("Expected %d, got %v", 5, val)
 	}
 }
 
