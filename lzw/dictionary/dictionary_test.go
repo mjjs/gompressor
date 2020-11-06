@@ -122,3 +122,28 @@ func TestReturnsSizeCorrectly(t *testing.T) {
 		t.Errorf("Expected size to be %d, got %d", 1, n)
 	}
 }
+
+func TestKeys(t *testing.T) {
+	dict := New()
+	dict.Set("a", 1)
+	dict.Set("b", 2)
+	dict.Set("c", 3)
+
+	keys := dict.Keys()
+
+	if n := keys.Size(); n != 3 {
+		t.Errorf("Expected size to be %d, got %d", 3, n)
+	}
+
+	if key := keys.MustGet(0); key != "a" {
+		t.Errorf("Expected key to be %s, got %v", "a", key)
+	}
+
+	if key := keys.MustGet(1); key != "b" {
+		t.Errorf("Expected key to be %s, got %v", "b", key)
+	}
+
+	if key := keys.MustGet(2); key != "c" {
+		t.Errorf("Expected key to be %s, got %v", "c", key)
+	}
+}

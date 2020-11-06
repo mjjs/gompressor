@@ -2,6 +2,7 @@ package dictionary
 
 import (
 	"github.com/mjjs/gompressor/linkedlist"
+	"github.com/mjjs/gompressor/vector"
 )
 
 const defaultSize uint = 32
@@ -113,6 +114,19 @@ func (d *Dictionary) Size() int {
 	return d.size
 }
 
+// Keys returns a vector containing all the keys in the dictionary.
+func (d *Dictionary) Keys() *vector.Vector {
+	keys := vector.New()
+
+	for _, bucket := range d.buckets {
+		bucket.ForEach(func(node interface{}) {
+			keys.Append(node.(*dictionaryNode).key)
+		})
+	}
+
+	return keys
+}
+
 func (d *Dictionary) getBucket(key interface{}) *linkedlist.LinkedList {
 	hash := hash(key)
 	n := int64(len(d.buckets))
@@ -159,6 +173,8 @@ func hash(key interface{}) int64 {
 
 		return hash
 	case uint16:
+		return int64(v)
+	case byte:
 		return int64(v)
 	default:
 		panic("Unsupported key type")
