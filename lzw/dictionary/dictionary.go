@@ -108,6 +108,7 @@ func (d *Dictionary) Remove(key interface{}) {
 	d.size--
 }
 
+// Size returns the amount of unique values present in the dictionary.
 func (d *Dictionary) Size() int {
 	return d.size
 }

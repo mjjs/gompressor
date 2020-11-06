@@ -67,6 +67,17 @@ func (v *Vector) Append(values ...interface{}) {
 	}
 }
 
+// Pop removes the last element from the vector.
+func (v *Vector) Pop() interface{} {
+	if v.size == 0 {
+		return nil
+	}
+
+	tail := v.elements[v.size-1]
+	v.size--
+	return tail
+}
+
 // AppendToCopy creates a copy of v and appends the values to the end of the
 // copy and returns the copy. The copy is grown if necessary.
 func (v *Vector) AppendToCopy(values ...interface{}) *Vector {

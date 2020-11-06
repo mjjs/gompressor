@@ -185,3 +185,18 @@ func TestStringPanicsOnInvalidType(t *testing.T) {
 
 	_ = vec.String()
 }
+
+func TestPop(t *testing.T) {
+	vec := New()
+	vec.Append(1, 2, 3, 4)
+
+	for i := 4; i > 0; i-- {
+		if val := vec.Pop(); val != i {
+			t.Errorf("Expected %d, got %d", i, val)
+		}
+
+		if vec.Size() != i-1 {
+			t.Errorf("Expected size to be %d, got %d", i-1, vec.Size())
+		}
+	}
+}
