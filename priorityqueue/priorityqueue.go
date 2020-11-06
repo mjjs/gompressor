@@ -26,12 +26,12 @@ func (pq *PriorityQueue) Enqueue(priority int, value interface{}) {
 
 // Dequeue removes the element with the highest priority and returns it to the caller.
 // The rest of the tree is re-ordered to satisfy the heap property.
-func (pq *PriorityQueue) Dequeue() interface{} {
+func (pq *PriorityQueue) Dequeue() (int, interface{}) {
 	if pq.nodes.Size() == 0 {
-		return nil
+		return 0, nil
 	}
 
-	head := pq.nodes.MustGet(0).(*node).value
+	head := pq.nodes.MustGet(0).(*node)
 
 	pq.nodes.MustSet(0, pq.nodes.MustGet(pq.nodes.Size()-1))
 	pq.nodes.Pop()
@@ -40,17 +40,19 @@ func (pq *PriorityQueue) Dequeue() interface{} {
 		pq.siftDown(0)
 	}
 
-	return head
+	return head.priority, head.value
 }
 
 // Peek returns the highest priority element to the caller without removing it
 // from the queue.
-func (pq *PriorityQueue) Peek() interface{} {
+func (pq *PriorityQueue) Peek() (int, interface{}) {
 	if pq.nodes.Size() == 0 {
-		return nil
+		return 0, nil
 	}
 
-	return pq.nodes.MustGet(0).(*node).value
+	node := pq.nodes.MustGet(0).(*node)
+
+	return node.priority, node.value
 }
 
 func (pq *PriorityQueue) siftUp(i int) {

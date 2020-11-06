@@ -11,19 +11,19 @@ func TestDequeueReturnsSmallestPriorityFirst(t *testing.T) {
 	pq.Enqueue(1, 3)
 	pq.Enqueue(5, 4)
 
-	if val := pq.Dequeue(); val != 1 {
+	if _, val := pq.Dequeue(); val != 1 {
 		t.Errorf("Expected %d, got %v", 1, val)
 	}
 
-	if val := pq.Dequeue(); val != 3 {
+	if _, val := pq.Dequeue(); val != 3 {
 		t.Errorf("Expected %d, got %v", 3, val)
 	}
 
-	if val := pq.Dequeue(); val != 2 {
+	if _, val := pq.Dequeue(); val != 2 {
 		t.Errorf("Expected %d, got %v", 4, val)
 	}
 
-	if val := pq.Dequeue(); val != 4 {
+	if _, val := pq.Dequeue(); val != 4 {
 		t.Errorf("Expected %d, got %v", 5, val)
 	}
 }
@@ -35,22 +35,24 @@ func TestPeekReturnsSmallestPriorityWithoutRemovingIt(t *testing.T) {
 	pq.Enqueue(8, "b")
 
 	for i := 0; i < 5; i++ {
-		if val := pq.Peek(); val != "a" {
+		if prio, val := pq.Peek(); val != "a" {
 			t.Errorf("Expected peek to return first element on all calls, got %v", val)
+		} else if prio != 5 {
+			t.Errorf("Expected priority to be %d, got %d", 5, prio)
 		}
 	}
 }
 
 func TestPeekReturnsNilOnEmptyQueue(t *testing.T) {
 	pq := &PriorityQueue{}
-	if val := pq.Peek(); val != nil {
+	if _, val := pq.Peek(); val != nil {
 		t.Errorf("Expected nil, got %v", val)
 	}
 }
 
 func TestDequeueReturnsNilOnEmptyQueue(t *testing.T) {
 	pq := &PriorityQueue{}
-	if val := pq.Dequeue(); val != nil {
+	if _, val := pq.Dequeue(); val != nil {
 		t.Errorf("Expected nil, got %v", val)
 	}
 }
