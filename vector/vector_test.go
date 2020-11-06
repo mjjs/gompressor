@@ -199,4 +199,8 @@ func TestPop(t *testing.T) {
 			t.Errorf("Expected size to be %d, got %d", i-1, vec.Size())
 		}
 	}
+
+	if val := vec.Pop(); val != nil {
+		t.Errorf("Expected nil to be returned from popping empty vector, got %v", val)
+	}
 }
