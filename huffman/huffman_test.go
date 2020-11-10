@@ -42,10 +42,10 @@ func TestCreateFrequencyTable(t *testing.T) {
 }
 
 func TestIsLeafNode(t *testing.T) {
-	leafA := &node{}
-	leafB := &node{}
-	innerNodeA := &node{left: leafA, right: leafB}
-	innerNodeB := &node{left: leafA}
+	leafA := &huffmanTreeNode{}
+	leafB := &huffmanTreeNode{}
+	innerNodeA := &huffmanTreeNode{left: leafA, right: leafB}
+	innerNodeB := &huffmanTreeNode{left: leafA}
 
 	if !isLeafNode(leafA) {
 		t.Error("Expected a node with no children to be a leaf node")
@@ -139,9 +139,34 @@ func TestDecompressedEqualsOriginal(t *testing.T) {
 	}
 
 	compressed := Compress(origVector)
-	decompressed := Decompress(compressed)
+	decompressed, err := Decompress(compressed)
+
+	if err != nil {
+		t.Errorf("Expected a nil error, got %s", err)
+	}
 
 	if !reflect.DeepEqual(origVector, decompressed) {
 		t.Errorf("Expected '%s', got '%s'", origVector, decompressed)
+	}
+}
+
+func TestDecompressReturnsErrorForInvalidData(t *testing.T) {
+	_, err := Decompress(vector.New().AppendToCopy(byte(6), byte(5), byte(4), byte(3), byte(2), byte(1)))
+	if err == nil {
+		t.Error("Expected an error, got nil")
+	}
+
+	_, err = Decompress(vector.New().AppendToCopy(
+		// Encoded prefix tree
+		byte(0), byte(0), byte(1), byte('E'),
+		byte(0), byte(1), byte(1), byte('s'),
+		byte(1), byte(0), byte(1), byte('k'),
+		byte(1), byte(1), byte(1), byte('o'),
+		// Badly encoded huffman codes
+		byte(6),
+	))
+
+	if err == nil {
+		t.Error("Expected an error, got nil")
 	}
 }
