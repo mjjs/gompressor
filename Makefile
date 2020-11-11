@@ -7,6 +7,9 @@ helloworld:
 coverage:
 	go test ./... -coverprofile=coverage.out && go tool cover -html=coverage.out && rm coverage.out
 
+save-coverage:
+	go test ./... -coverprofile=coverage.out && go tool cover -html=coverage.out -o ./doc/coverage.html && rm coverage.out
+
 test:
 	go test ./... -cover
 
