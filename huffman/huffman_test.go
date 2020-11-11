@@ -1,4 +1,4 @@
-package lzw
+package huffman
 
 import (
 	"reflect"
@@ -7,80 +7,127 @@ import (
 	"github.com/mjjs/gompressor/vector"
 )
 
-var compressTestCases = []struct {
-	name           string
-	input          []byte
-	expectedOutput *vector.Vector
-	shouldError    bool
-}{
-	{
-		name:           "Hello world",
-		input:          []byte("Hello World"),
-		expectedOutput: vector.New().AppendToCopy(uint16(72), uint16(101), uint16(108), uint16(108), uint16(111), uint16(32), uint16(87), uint16(111), uint16(114), uint16(108), uint16(100)),
-		shouldError:    false,
-	},
-	{
-		name:           "Empty input",
-		input:          []byte{},
-		expectedOutput: vector.New(),
-		shouldError:    false,
-	},
-}
+func TestCreateFrequencyTable(t *testing.T) {
+	bytes := vector.New()
 
-func TestCompress(t *testing.T) {
-	for _, testCase := range compressTestCases {
-		bv := vector.New(0, uint(len(testCase.input)))
-		for _, b := range testCase.input {
-			bv.Append(b)
+	inputs := []struct {
+		val  byte
+		freq int
+	}{
+		{val: byte(1), freq: 2},
+		{val: byte(4), freq: 6},
+		{val: byte(2), freq: 12},
+		{val: byte(3), freq: 1},
+	}
+
+	for _, input := range inputs {
+		for i := 0; i < input.freq; i++ {
+			bytes.Append(input.val)
 		}
-		actual, err := Compress(bv)
+	}
 
-		if err != nil && !testCase.shouldError {
-			t.Errorf("%s: unexpected error %s", testCase.name, err)
-		} else if err == nil && testCase.shouldError {
-			t.Errorf("%s: expected error, got nil", testCase.name)
-		}
+	frequencies := createFrequencyTable(bytes)
 
-		if !reflect.DeepEqual(actual, testCase.expectedOutput) {
-			t.Errorf("%s\nexpected %+v\ngot %+v", testCase.name, testCase.expectedOutput, actual)
+	if n := frequencies.Size(); n != len(inputs) {
+		t.Errorf("Expected %d, got %d", 4, n)
+	}
+
+	for _, input := range inputs {
+		if frequency, ok := frequencies.Get(input.val); !ok {
+			t.Errorf("Expected %x to be found in frequency table", input.val)
+		} else if frequency != input.freq {
+			t.Errorf("Expected %d, got %d", input.freq, frequency)
 		}
 	}
 }
 
-var decompressTestCases = []struct {
-	name           string
-	input          *vector.Vector
-	expectedOutput *vector.Vector
-	shouldError    bool
-}{
-	{
-		name:  "Hello world",
-		input: vector.New().AppendToCopy(uint16(72), uint16(101), uint16(108), uint16(108), uint16(111), uint16(32), uint16(87), uint16(111), uint16(114), uint16(108), uint16(100)),
-		expectedOutput: vector.New().AppendToCopy(byte('H'), byte('e'), byte('l'), byte('l'), byte('o'),
-			byte(' '), byte('W'), byte('o'), byte('r'), byte('l'), byte('d')),
-		shouldError: false,
-	},
-	{
-		name:           "Empty input",
-		input:          vector.New(),
-		expectedOutput: vector.New(),
-		shouldError:    false,
-	},
+func TestIsLeafNode(t *testing.T) {
+	leafA := &huffmanTreeNode{}
+	leafB := &huffmanTreeNode{}
+	innerNodeA := &huffmanTreeNode{left: leafA, right: leafB}
+	innerNodeB := &huffmanTreeNode{left: leafA}
+
+	if !isLeafNode(leafA) {
+		t.Error("Expected a node with no children to be a leaf node")
+	}
+
+	if !isLeafNode(leafB) {
+		t.Error("Expected a node with no children to be a leaf node")
+	}
+
+	if isLeafNode(innerNodeA) {
+		t.Error("Expected a node with two children to be an inner node")
+	}
+
+	if isLeafNode(innerNodeB) {
+		t.Error("Expected a node with one child to be an inner node")
+	}
 }
 
-func TestDecompress(t *testing.T) {
-	for _, testCase := range decompressTestCases {
-		actual, err := Decompress(testCase.input)
+func TestBuildPrefixTree(t *testing.T) {
+	original := "AABCDEF"
+	originalBytes := vector.New()
+	for _, c := range original {
+		originalBytes.Append(byte(c))
+	}
 
-		if err != nil && !testCase.shouldError {
-			t.Errorf("%s: unexpected error %s", testCase.name, err)
-		} else if err == nil && testCase.shouldError {
-			t.Errorf("%s: expected error, got nil", testCase.name)
-		}
+	frequencies := createFrequencyTable(originalBytes)
+	prefixTree := buildPrefixTree(frequencies)
 
-		if !reflect.DeepEqual(actual, testCase.expectedOutput) {
-			t.Errorf("%s\nexpected %+v\ngot %+v", testCase.name, testCase.expectedOutput, actual)
-		}
+	if prefixTree.frequency != 7 {
+		t.Errorf("Expected %d, got %d", 7, prefixTree.frequency)
+	}
+
+	if prefixTree.left.frequency != 3 {
+		t.Errorf("Expected %d, got %d", 3, prefixTree.left.frequency)
+	}
+
+	if prefixTree.left.left.frequency != 1 {
+		t.Errorf("Expected %d, got %d", 1, prefixTree.left.left.frequency)
+	} else if prefixTree.left.left.value != byte('C') {
+		t.Errorf("Expected %v, got %v", 'C', prefixTree.left.left.value)
+	}
+
+	if prefixTree.left.right.frequency != 2 {
+		t.Errorf("Expected %d, got %d", 2, prefixTree.left.right.frequency)
+	}
+
+	if prefixTree.left.right.left.frequency != 1 {
+		t.Errorf("Expected %d, got %d", 1, prefixTree.left.right.left.frequency)
+	} else if prefixTree.left.right.left.value != byte('E') {
+		t.Errorf("Expected %v, got %v", 'E', prefixTree.left.right.left.value)
+	}
+
+	if prefixTree.left.right.right.frequency != 1 {
+		t.Errorf("Expected %d, got %d", 1, prefixTree.left.right.right.frequency)
+	} else if prefixTree.left.right.right.value != byte('D') {
+		t.Errorf("Expected %v, got %v", 'D', prefixTree.left.right.right.value)
+	}
+
+	if prefixTree.right.frequency != 4 {
+		t.Errorf("Expected %d, got %d", 4, prefixTree.right.frequency)
+	}
+
+	if prefixTree.right.left.frequency != 2 {
+		t.Errorf("Expected %d, got %d", 2, prefixTree.right.left.frequency)
+	} else if prefixTree.right.left.value != byte('A') {
+		t.Errorf("Expected %v, got %v", 'A', prefixTree.right.left.value)
+	}
+
+	if prefixTree.right.right.frequency != 2 {
+		t.Errorf("Expected %d, got %d", 2, prefixTree.right.left.frequency)
+	}
+
+	if prefixTree.right.right.left.frequency != 1 {
+		t.Errorf("Expected %d, got %d", 1, prefixTree.right.right.left.frequency)
+	} else if prefixTree.right.right.left.value != byte('B') {
+		t.Errorf("Expected %v, got %v", 'B', prefixTree.right.right.left.value)
+	}
+
+	if prefixTree.right.right.right.frequency != 1 {
+		t.Errorf("Expected %d, got %d", 1, prefixTree.right.right.right.frequency)
+	} else if prefixTree.right.right.right.value != byte('F') {
+		t.Errorf("Expected %v, got %v", 'F', prefixTree.right.right.right.value)
 	}
 }
 
@@ -91,17 +138,35 @@ func TestDecompressedEqualsOriginal(t *testing.T) {
 		origVector.Append(c)
 	}
 
-	compressed, err := Compress(origVector)
-	if err != nil {
-		t.Errorf("Expected no error, got %s", err)
-	}
-
+	compressed := Compress(origVector)
 	decompressed, err := Decompress(compressed)
+
 	if err != nil {
-		t.Errorf("Expected no error, got %s", err)
+		t.Errorf("Expected a nil error, got %s", err)
 	}
 
-	if reflect.DeepEqual(original, decompressed) {
-		t.Error("NOT OK")
+	if !reflect.DeepEqual(origVector, decompressed) {
+		t.Errorf("Expected '%s', got '%s'", origVector, decompressed)
+	}
+}
+
+func TestDecompressReturnsErrorForInvalidData(t *testing.T) {
+	_, err := Decompress(vector.New().AppendToCopy(byte(6), byte(5), byte(4), byte(3), byte(2), byte(1)))
+	if err == nil {
+		t.Error("Expected an error, got nil")
+	}
+
+	_, err = Decompress(vector.New().AppendToCopy(
+		// Encoded prefix tree
+		byte(0), byte(0), byte(1), byte('E'),
+		byte(0), byte(1), byte(1), byte('s'),
+		byte(1), byte(0), byte(1), byte('k'),
+		byte(1), byte(1), byte(1), byte('o'),
+		// Badly encoded huffman codes
+		byte(6),
+	))
+
+	if err == nil {
+		t.Error("Expected an error, got nil")
 	}
 }

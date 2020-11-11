@@ -14,7 +14,6 @@ type node struct {
 // PriorityQueue is the type which implements the priority queue.
 type PriorityQueue struct {
 	nodes vector.Vector
-	size  int
 }
 
 // Enqueue adds value to the queue with the given priority. Elements are re-ordered
@@ -53,6 +52,11 @@ func (pq *PriorityQueue) Peek() (int, interface{}) {
 	node := pq.nodes.MustGet(0).(*node)
 
 	return node.priority, node.value
+}
+
+// Size returns the amount of elements in the queue.
+func (pq *PriorityQueue) Size() int {
+	return pq.nodes.Size()
 }
 
 func (pq *PriorityQueue) siftUp(i int) {

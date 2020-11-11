@@ -28,6 +28,30 @@ func TestDequeueReturnsSmallestPriorityFirst(t *testing.T) {
 	}
 }
 
+func TestDequeueReturnsFirstQueuedValueForEqualPriorities(t *testing.T) {
+	pq := &PriorityQueue{}
+	pq.Enqueue(1, 1)
+	pq.Enqueue(1, 2)
+	pq.Enqueue(2, 4)
+	pq.Enqueue(2, 5)
+
+	if _, val := pq.Dequeue(); val != 1 {
+		t.Errorf("Expected %d, got %v", 1, val)
+	}
+
+	if _, val := pq.Dequeue(); val != 2 {
+		t.Errorf("Expected %d, got %v", 2, val)
+	}
+
+	if _, val := pq.Dequeue(); val != 4 {
+		t.Errorf("Expected %d, got %v", 4, val)
+	}
+
+	if _, val := pq.Dequeue(); val != 5 {
+		t.Errorf("Expected %d, got %v", 5, val)
+	}
+}
+
 func TestPeekReturnsSmallestPriorityWithoutRemovingIt(t *testing.T) {
 	pq := &PriorityQueue{}
 	pq.Enqueue(9, "g")
@@ -69,5 +93,25 @@ func TestDequeueRemovesNodes(t *testing.T) {
 
 	if pq.nodes.Size() != 0 {
 		t.Errorf("Expected size to be %d got %d", pq.nodes.Size(), 0)
+	}
+}
+
+func TestSize(t *testing.T) {
+	pq := &PriorityQueue{}
+
+	if n := pq.Size(); n != 0 {
+		t.Errorf("Expected size to be 0, got %d", n)
+	}
+
+	pq.Enqueue(1, 1)
+
+	if n := pq.Size(); n != 1 {
+		t.Errorf("Expected size to be 1, got %d", n)
+	}
+
+	pq.Dequeue()
+
+	if n := pq.Size(); n != 0 {
+		t.Errorf("Expected size to be 0, got %d", n)
 	}
 }
