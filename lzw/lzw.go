@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mjjs/gompressor/lzw/dictionary"
+	"github.com/mjjs/gompressor/dictionary"
 	"github.com/mjjs/gompressor/vector"
 )
 

@@ -12,7 +12,7 @@ type dictionaryNode struct {
 	value interface{}
 }
 
-// Dictionary is a hash table data structure used by the LZW algorithm.
+// Dictionary implements a hashtable.
 type Dictionary struct {
 	buckets []*linkedlist.LinkedList
 	size    int
