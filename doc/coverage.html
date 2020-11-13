@@ -55,7 +55,7 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">github.com/mjjs/gompressor/huffman/huffman.go (100.0%)</option>
+				<option value="file0">github.com/mjjs/gompressor/huffman/huffman.go (99.1%)</option>
 				
 				<option value="file1">github.com/mjjs/gompressor/linkedlist/linkedlist.go (100.0%)</option>
 				
@@ -108,23 +108,44 @@ func Compress(uncompressed *vector.Vector) *vector.Vector <span class="cov8" tit
         codes := dictionary.New()
         buildCodes(prefixTree, vector.New(), codes)
 
-        compressed := vector.New()
-        compressPrefixTree(prefixTree, compressed)
-        compressHuffmanCodes(uncompressed, codes, compressed)
+        compressedPrefixTree := vector.New()
+        compressPrefixTree(prefixTree, compressedPrefixTree)
 
-        return compressed
-}</span>
+        compressedString := encodeToHuffmanCodes(uncompressed, codes)
+
+        totalBits, compressedCodes := compressHuffmanCodes(compressedString)
+
+        compressed := vector.New(0, uint(compressedPrefixTree.Size()+compressedCodes.Size()))
+
+        compressed.Append(byte(totalBits % 8))
+
+        for i := 0; i &lt; compressedPrefixTree.Size(); i++ </span><span class="cov8" title="1">{
+                compressed.Append(compressedPrefixTree.MustGet(i))
+        }</span>
+
+        <span class="cov8" title="1">for i := 0; i &lt; compressedCodes.Size(); i++ </span><span class="cov8" title="1">{
+                compressed.Append(compressedCodes.MustGet(i))
+        }</span>
+
+        <span class="cov8" title="1">return compressed</span>
+}
 
 // Decompress takes in a vector of huffman compressed bytes and outputs a vector
 // of uncompressed bytes. Returns a non-nil error if the decompression fails.
 func Decompress(compressed *vector.Vector) (*vector.Vector, error) <span class="cov8" title="1">{
-        prefixTree, nextIndex := decompressPrefixTree(compressed, 0)
+        lastByteBits := int(compressed.MustGet(0).(byte))
+
+        prefixTree, nextIndex := decompressPrefixTree(compressed, 1)
         decompressed := vector.New()
 
         var err error
 
-        for nextIndex &lt; compressed.Size() </span><span class="cov8" title="1">{
-                nextIndex, err = decodeHuffmanCode(compressed, nextIndex, prefixTree, decompressed)
+        codes := decompressHuffmanCodes(compressed, nextIndex, lastByteBits)
+
+        nextIndex = 0
+
+        for nextIndex &lt; codes.Size() </span><span class="cov8" title="1">{
+                nextIndex, err = decodeHuffmanCode(codes, nextIndex, prefixTree, decompressed)
 
                 if err != nil </span><span class="cov8" title="1">{
                         return nil, err
@@ -176,17 +197,17 @@ func buildPrefixTree(byteFrequencies *dictionary.Dictionary) *huffmanTreeNode <s
         return root.(*huffmanTreeNode)</span>
 }
 
-func buildCodes(root *huffmanTreeNode, str *vector.Vector, result *dictionary.Dictionary) <span class="cov8" title="1">{
+func buildCodes(root *huffmanTreeNode, code *vector.Vector, result *dictionary.Dictionary) <span class="cov8" title="1">{
         if root == nil </span><span class="cov8" title="1">{
                 return
         }</span>
 
         <span class="cov8" title="1">if isLeafNode(root) </span><span class="cov8" title="1">{
-                result.Set(root.value, str)
+                result.Set(root.value, code)
         }</span>
 
-        <span class="cov8" title="1">buildCodes(root.left, str.AppendToCopy(byte(0)), result)
-        buildCodes(root.right, str.AppendToCopy(byte(1)), result)</span>
+        <span class="cov8" title="1">buildCodes(root.left, code.AppendToCopy(byte(0)), result)
+        buildCodes(root.right, code.AppendToCopy(byte(1)), result)</span>
 }
 
 func compressPrefixTree(root *huffmanTreeNode, to *vector.Vector) <span class="cov8" title="1">{
@@ -206,12 +227,12 @@ func compressPrefixTree(root *huffmanTreeNode, to *vector.Vector) <span class="c
 func decompressPrefixTree(compressed *vector.Vector, index int) (*huffmanTreeNode, int) <span class="cov8" title="1">{
         byt := compressed.MustGet(index).(byte)
         switch byt </span>{
-        case 0x00:<span class="cov8" title="1">
+        case byte(0):<span class="cov8" title="1">
                 left, nextIndex := decompressPrefixTree(compressed, index+1)
                 right, nextIndex := decompressPrefixTree(compressed, nextIndex)
                 return &amp;huffmanTreeNode{left: left, right: right}, nextIndex</span>
 
-        case 0x01:<span class="cov8" title="1">
+        case byte(1):<span class="cov8" title="1">
                 return &amp;huffmanTreeNode{value: compressed.MustGet(index + 1).(byte)}, index + 2</span>
 
         default:<span class="cov8" title="1">
@@ -219,7 +240,26 @@ func decompressPrefixTree(compressed *vector.Vector, index int) (*huffmanTreeNod
         }
 }
 
-func decodeHuffmanCode(compressed *vector.Vector, index int, root *huffmanTreeNode, to *vector.Vector) (int, error) <span class="cov8" title="1">{
+func decompressHuffmanCodes(compressed *vector.Vector, index int, lastByteBits int) *vector.Vector <span class="cov8" title="1">{
+        huffmanCodes := vector.New(0, uint(compressed.Size()-index))
+
+        for i := index; i &lt; compressed.Size(); i++ </span><span class="cov8" title="1">{
+                codeByte := compressed.MustGet(i).(byte)
+
+                totalBits := 7
+                if i == compressed.Size()-1 </span><span class="cov8" title="1">{
+                        totalBits = lastByteBits - 1
+                }</span>
+
+                <span class="cov8" title="1">for j := totalBits; j &gt;= 0; j-- </span><span class="cov8" title="1">{
+                        huffmanCodes.Append((codeByte &gt;&gt; j) &amp; 1)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return huffmanCodes</span>
+}
+
+func decodeHuffmanCode(codes *vector.Vector, index int, root *huffmanTreeNode, to *vector.Vector) (int, error) <span class="cov8" title="1">{
         if root == nil </span><span class="cov8" title="1">{
                 return 0, errors.New("No prefix tree supplied")
         }</span>
@@ -229,27 +269,62 @@ func decodeHuffmanCode(compressed *vector.Vector, index int, root *huffmanTreeNo
                 return index, nil
         }</span>
 
-        <span class="cov8" title="1">next := compressed.MustGet(index).(byte)
+        <span class="cov8" title="1">next := codes.MustGet(index)
         switch next </span>{
-        case 0x00:<span class="cov8" title="1">
-                return decodeHuffmanCode(compressed, index+1, root.left, to)</span>
-        case 0x01:<span class="cov8" title="1">
-                return decodeHuffmanCode(compressed, index+1, root.right, to)</span>
-        default:<span class="cov8" title="1">
+        case byte(0):<span class="cov8" title="1">
+                return decodeHuffmanCode(codes, index+1, root.left, to)</span>
+        case byte(1):<span class="cov8" title="1">
+                return decodeHuffmanCode(codes, index+1, root.right, to)</span>
+        default:<span class="cov0" title="0">
                 return 0, fmt.Errorf("An unexpected symbol %x found in the compressed data", next)</span>
         }
 }
 
-func compressHuffmanCodes(uncompressed *vector.Vector, codes *dictionary.Dictionary, to *vector.Vector) <span class="cov8" title="1">{
+func encodeToHuffmanCodes(uncompressed *vector.Vector, codes *dictionary.Dictionary) *vector.Vector <span class="cov8" title="1">{
+        encodedHuffmanCodes := vector.New()
+
         for i := 0; i &lt; uncompressed.Size(); i++ </span><span class="cov8" title="1">{
-                value := uncompressed.MustGet(i)
-                iCode, _ := codes.Get(value)
+                byt := uncompressed.MustGet(i)
+
+                iCode, _ := codes.Get(byt)
                 code := iCode.(*vector.Vector)
 
                 for j := 0; j &lt; code.Size(); j++ </span><span class="cov8" title="1">{
-                        to.Append(code.MustGet(j))
+                        encodedHuffmanCodes.Append(code.MustGet(j))
                 }</span>
         }
+
+        <span class="cov8" title="1">return encodedHuffmanCodes</span>
+}
+
+func compressHuffmanCodes(codes *vector.Vector) (totalBits int, compressedCodes *vector.Vector) <span class="cov8" title="1">{
+        currentCode := vector.New(0, 8)
+        encodedCode := byte(0)
+
+        compressedCodes = vector.New()
+
+        for i := 0; i &lt; codes.Size(); i++ </span><span class="cov8" title="1">{
+                currentCode.Append(codes.MustGet(i))
+
+                if currentCode.Size() == 8 || i == codes.Size()-1 </span><span class="cov8" title="1">{
+                        for j := 0; j &lt; currentCode.Size(); j++ </span><span class="cov8" title="1">{
+                                totalBits++
+
+                                if currentCode.MustGet(j) == byte(0) </span><span class="cov8" title="1">{
+                                        encodedCode &lt;&lt;= 1
+                                }</span> else<span class="cov8" title="1"> {
+                                        encodedCode &lt;&lt;= 1
+                                        encodedCode |= 1
+                                }</span>
+                        }
+
+                        <span class="cov8" title="1">compressedCodes.Append(encodedCode)
+                        currentCode = vector.New(0, 8)
+                        encodedCode = byte(0)</span>
+                }
+        }
+
+        <span class="cov8" title="1">return totalBits, compressedCodes</span>
 }
 
 func isLeafNode(n *huffmanTreeNode) bool <span class="cov8" title="1">{
