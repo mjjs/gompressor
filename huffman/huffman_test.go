@@ -157,6 +157,8 @@ func TestDecompressReturnsErrorForInvalidData(t *testing.T) {
 	}
 
 	_, err = Decompress(vector.New().AppendToCopy(
+		// Bits to use from last byte
+		byte(4),
 		// Encoded prefix tree
 		byte(0), byte(0), byte(1), byte('E'),
 		byte(0), byte(1), byte(1), byte('s'),

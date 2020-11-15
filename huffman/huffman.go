@@ -21,8 +21,8 @@ type huffmanTreeNode struct {
 // Compress takes in a vector of uncompressed bytes and outputs a vector of
 // compressed bytes.
 func Compress(uncompressed *vector.Vector) *vector.Vector {
-	frequencies := createFrequencyTable(uncompressed)
-	prefixTree := buildPrefixTree(frequencies)
+	byteFrequencies := createFrequencyTable(uncompressed)
+	prefixTree := buildPrefixTree(byteFrequencies)
 
 	codes := dictionary.New()
 	buildCodes(prefixTree, vector.New(), codes)
@@ -30,13 +30,13 @@ func Compress(uncompressed *vector.Vector) *vector.Vector {
 	compressedPrefixTree := vector.New()
 	compressPrefixTree(prefixTree, compressedPrefixTree)
 
-	compressedString := encodeToHuffmanCodes(uncompressed, codes)
+	encodedBytes := encodeToHuffmanCodes(uncompressed, codes)
 
-	totalBits, compressedCodes := compressHuffmanCodes(compressedString)
+	compressedCodes, lastByteInBits := compressHuffmanCodes(encodedBytes)
 
-	compressed := vector.New(0, uint(compressedPrefixTree.Size()+compressedCodes.Size()))
-
-	compressed.Append(byte(totalBits % 8))
+	// Reserve space for the last byte size, prefix tree and huffman codes
+	compressed := vector.New(0, 1+uint(compressedPrefixTree.Size()+compressedCodes.Size()))
+	compressed.Append(byte(lastByteInBits))
 
 	for i := 0; i < compressedPrefixTree.Size(); i++ {
 		compressed.Append(compressedPrefixTree.MustGet(i))
@@ -52,14 +52,18 @@ func Compress(uncompressed *vector.Vector) *vector.Vector {
 // Decompress takes in a vector of huffman compressed bytes and outputs a vector
 // of uncompressed bytes. Returns a non-nil error if the decompression fails.
 func Decompress(compressed *vector.Vector) (*vector.Vector, error) {
-	lastByteBits := int(compressed.MustGet(0).(byte))
+	if compressed.Size() == 0 {
+		return nil, errors.New("unable to decompress empty data")
+	}
+
+	lastByteInBits := int(compressed.MustGet(0).(byte))
 
 	prefixTree, nextIndex := decompressPrefixTree(compressed, 1)
 	decompressed := vector.New()
 
 	var err error
 
-	codes := decompressHuffmanCodes(compressed, nextIndex, lastByteBits)
+	codes := decompressHuffmanCodes(compressed, nextIndex, lastByteInBits)
 
 	nextIndex = 0
 
@@ -132,11 +136,9 @@ func buildCodes(root *huffmanTreeNode, code *vector.Vector, result *dictionary.D
 func compressPrefixTree(root *huffmanTreeNode, to *vector.Vector) {
 	switch isLeafNode(root) {
 	case true:
-		// This can be optimzied to 1 bit if needed
 		to.Append(byte(1))
 		to.Append(root.value)
 	case false:
-		// This can be optimzied to 1 bit if needed
 		to.Append(byte(0))
 		compressPrefixTree(root.left, to)
 		compressPrefixTree(root.right, to)
@@ -159,7 +161,7 @@ func decompressPrefixTree(compressed *vector.Vector, index int) (*huffmanTreeNod
 	}
 }
 
-func decompressHuffmanCodes(compressed *vector.Vector, index int, lastByteBits int) *vector.Vector {
+func decompressHuffmanCodes(compressed *vector.Vector, index int, lastByteInBits int) *vector.Vector {
 	huffmanCodes := vector.New(0, uint(compressed.Size()-index))
 
 	for i := index; i < compressed.Size(); i++ {
@@ -167,7 +169,7 @@ func decompressHuffmanCodes(compressed *vector.Vector, index int, lastByteBits i
 
 		totalBits := 7
 		if i == compressed.Size()-1 {
-			totalBits = lastByteBits - 1
+			totalBits = lastByteInBits - 1
 		}
 
 		for j := totalBits; j >= 0; j-- {
@@ -216,9 +218,10 @@ func encodeToHuffmanCodes(uncompressed *vector.Vector, codes *dictionary.Diction
 	return encodedHuffmanCodes
 }
 
-func compressHuffmanCodes(codes *vector.Vector) (totalBits int, compressedCodes *vector.Vector) {
+func compressHuffmanCodes(codes *vector.Vector) (compressedCodes *vector.Vector, lastByteInBits int) {
 	currentCode := vector.New(0, 8)
 	encodedCode := byte(0)
+	totalBits := 0
 
 	compressedCodes = vector.New()
 
@@ -243,7 +246,7 @@ func compressHuffmanCodes(codes *vector.Vector) (totalBits int, compressedCodes 
 		}
 	}
 
-	return totalBits, compressedCodes
+	return compressedCodes, totalBits % 8
 }
 
 func isLeafNode(n *huffmanTreeNode) bool {
