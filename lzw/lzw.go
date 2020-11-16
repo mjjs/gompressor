@@ -8,18 +8,31 @@ import (
 	"github.com/mjjs/gompressor/vector"
 )
 
+// DictionarySize determines how large the dictionary used in compression can
+// grow before needing to be reset. Larger values result in more efficient
+// compression.
+type DictionarySize uint16
+
+// Dictionary sizes
 const (
-	initialDictSize uint16 = 256
-	maxDictSize     uint16 = 65535
+	XS DictionarySize = 512
+	S                 = 1023
+	M                 = 4095
+	L                 = 32767
+	XL                = 65535
 )
+
+const initialDictSize uint16 = 255
 
 // ErrBadCompressedCode represents an error that occurs when the LZW decompression
 // algorithm finds a code that is not valid for the assumed compression algorithm.
 var ErrBadCompressedCode = errors.New("bad compression code")
 
-// Compress takes a slice of uncompressed bytes as input and returns a slice of
-// LZW codes that represent the compressed data.
-func Compress(uncompressed *vector.Vector) (*vector.Vector, error) {
+// CompressWithDictSize takes a slice of uncompressed bytes and a dictionary size
+// as input and returns a slice of LZW codes that represent the compressed data.
+// This is mostly a utility function for testing how the dictionary size changes
+// the compression level.
+func CompressWithDictSize(uncompressed *vector.Vector, size DictionarySize) (*vector.Vector, error) {
 	createInitialDictionary := func() *dictionary.Dictionary {
 		dict := dictionary.NewWithSize(uint(initialDictSize))
 
@@ -33,10 +46,12 @@ func Compress(uncompressed *vector.Vector) (*vector.Vector, error) {
 	dict := createInitialDictionary()
 
 	compressed := vector.New()
+	compressed.Append(uint16(size))
+
 	word := vector.New()
 
 	for i := 0; i < uncompressed.Size(); i++ {
-		if dict.Size() == int(maxDictSize) {
+		if dict.Size() == int(size) {
 			dict = createInitialDictionary()
 		}
 
@@ -66,10 +81,19 @@ func Compress(uncompressed *vector.Vector) (*vector.Vector, error) {
 	return compressed, nil
 }
 
+// Compress is a shortcut for compressing with the largest dictionary size.
+func Compress(uncompressed *vector.Vector) (*vector.Vector, error) {
+	return CompressWithDictSize(uncompressed, XL)
+}
+
 // Decompress takes in a slice of LZW codes representing some compressed data
 // and outputs the decompressed data as a slice of bytes.
 // An error is returned if the decompression algorithm finds a bad LZW code.
 func Decompress(compressed *vector.Vector) (*vector.Vector, error) {
+	if compressed.Size() == 0 {
+		return compressed, nil
+	}
+
 	createInitialDictionary := func() *dictionary.Dictionary {
 		dict := dictionary.NewWithSize(uint(initialDictSize))
 
@@ -82,13 +106,15 @@ func Decompress(compressed *vector.Vector) (*vector.Vector, error) {
 		return dict
 	}
 
+	size := compressed.MustGet(0).(uint16)
+
 	dict := createInitialDictionary()
 
 	result := vector.New()
 	word := vector.New()
 
-	for i := 0; i < compressed.Size(); i++ {
-		if dict.Size() == int(maxDictSize) {
+	for i := 1; i < compressed.Size(); i++ {
+		if dict.Size() == int(size) {
 			dict = createInitialDictionary()
 		}
 
