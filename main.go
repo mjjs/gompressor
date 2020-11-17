@@ -49,29 +49,19 @@ func compress(algorithm string, inputFilename string, outputFilename string) err
 		return fmt.Errorf("Could not read input file: %s", err)
 	}
 
-	bv := vector.New(uint(len(bytes)))
-	for i, b := range bytes {
-		bv.MustSet(i, b)
-	}
-
 	var compressed *vector.Vector
 
 	switch algorithm {
 	case "huffman":
-		compressed = huffman.Compress(bv)
+		compressed = huffman.Compress(bytes)
 
-		bytes := []byte{}
-		for i := 0; i < compressed.Size(); i++ {
-			bytes = append(bytes, compressed.MustGet(i).(byte))
-		}
-
-		err = fileio.WriteFile(bytes, outputFilename)
+		err = fileio.WriteFile(compressed, outputFilename)
 		if err != nil {
 			return fmt.Errorf("Could not write compressed file: %s", err)
 		}
 
 	case "lzw":
-		compressed, err = lzw.Compress(bv)
+		compressed, err = lzw.Compress(bytes)
 		if err != nil {
 			return fmt.Errorf("Data compression failed: %s", err)
 		}
@@ -89,29 +79,19 @@ func compress(algorithm string, inputFilename string, outputFilename string) err
 }
 
 func decompress(algorithm string, inputFilename string, outputFilename string) error {
-	bytes, err := fileio.ReadFile(inputFilename)
-	if err != nil {
-		return fmt.Errorf("Could not read input file: %s", err)
-	}
-
-	bv := vector.New(uint(len(bytes)))
-	for i, b := range bytes {
-		bv.MustSet(i, b)
-	}
-
 	switch algorithm {
 	case "huffman":
-		decompressed, err := huffman.Decompress(bv)
+		bytes, err := fileio.ReadFile(inputFilename)
+		if err != nil {
+			return fmt.Errorf("Could not read input file: %s", err)
+		}
+
+		decompressed, err := huffman.Decompress(bytes)
 		if err != nil {
 			return fmt.Errorf("Data decompression failed: %s", err)
 		}
 
-		bytes := []byte{}
-		for i := 0; i < decompressed.Size(); i++ {
-			bytes = append(bytes, decompressed.MustGet(i).(byte))
-		}
-
-		err = fileio.WriteFile(bytes, outputFilename)
+		err = fileio.WriteFile(decompressed, outputFilename)
 		if err != nil {
 			return fmt.Errorf("Could not write decompressed file: %s", err)
 		}
@@ -127,12 +107,7 @@ func decompress(algorithm string, inputFilename string, outputFilename string) e
 			return fmt.Errorf("Data decompression failed: %s", err)
 		}
 
-		bytes := []byte{}
-		for i := 0; i < decompressed.Size(); i++ {
-			bytes = append(bytes, decompressed.MustGet(i).(byte))
-		}
-
-		err = fileio.WriteFile(bytes, outputFilename)
+		err = fileio.WriteFile(decompressed, outputFilename)
 		if err != nil {
 			return fmt.Errorf("Could not write decompressed file: %s", err)
 		}

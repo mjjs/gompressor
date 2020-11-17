@@ -80,7 +80,7 @@ func ReadLZWFile(filename string) (*vector.Vector, error) {
 	return codes, nil
 }
 
-func ReadFile(filename string) ([]byte, error) {
+func ReadFile(filename string) (*vector.Vector, error) {
 	absolutePath, err := filepath.Abs(filename)
 	if err != nil {
 		return nil, err
@@ -93,10 +93,20 @@ func ReadFile(filename string) ([]byte, error) {
 
 	defer file.Close()
 
-	return ioutil.ReadAll(file)
+	bytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	byteVector := vector.New(0, uint(len(bytes)))
+	for _, b := range bytes {
+		byteVector.Append(b)
+	}
+
+	return byteVector, nil
 }
 
-func WriteFile(bytes []byte, filename string) error {
+func WriteFile(byteVector *vector.Vector, filename string) error {
 	absolutePath, err := filepath.Abs(filename)
 	if err != nil {
 		return err
@@ -108,6 +118,11 @@ func WriteFile(bytes []byte, filename string) error {
 	}
 
 	defer file.Close()
+
+	bytes := make([]byte, 0, byteVector.Size())
+	for i := 0; i < byteVector.Size(); i++ {
+		bytes = append(bytes, byteVector.MustGet(i).(byte))
+	}
 
 	_, err = file.Write(bytes)
 	if err != nil {
