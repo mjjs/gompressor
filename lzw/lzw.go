@@ -32,18 +32,12 @@ var ErrBadCompressedCode = errors.New("bad compression code")
 // as input and returns a slice of LZW codes that represent the compressed data.
 // This is mostly a utility function for testing how the dictionary size changes
 // the compression level.
-func CompressWithDictSize(uncompressed *vector.Vector, size DictionarySize) (*vector.Vector, error) {
-	createInitialDictionary := func() *dictionary.Dictionary {
-		dict := dictionary.NewWithSize(uint(initialDictSize))
-
-		for i := uint16(0); i < initialDictSize; i++ {
-			dict.Set(string([]byte{byte(i)}), i)
-		}
-
-		return dict
+func CompressWithDictSize(uncompressed *vector.Vector, size DictionarySize) *vector.Vector {
+	if uncompressed.Size() == 0 {
+		return uncompressed
 	}
 
-	dict := createInitialDictionary()
+	dict := createInitialCompressDictionary()
 
 	compressed := vector.New()
 	compressed.Append(uint16(size))
@@ -52,7 +46,7 @@ func CompressWithDictSize(uncompressed *vector.Vector, size DictionarySize) (*ve
 
 	for i := 0; i < uncompressed.Size(); i++ {
 		if dict.Size() == int(size) {
-			dict = createInitialDictionary()
+			dict = createInitialCompressDictionary()
 		}
 
 		byt := uncompressed.MustGet(i)
@@ -78,11 +72,11 @@ func CompressWithDictSize(uncompressed *vector.Vector, size DictionarySize) (*ve
 		compressed.Append(code.(uint16))
 	}
 
-	return compressed, nil
+	return compressed
 }
 
 // Compress is a shortcut for compressing with the largest dictionary size.
-func Compress(uncompressed *vector.Vector) (*vector.Vector, error) {
+func Compress(uncompressed *vector.Vector) *vector.Vector {
 	return CompressWithDictSize(uncompressed, XL)
 }
 
@@ -94,28 +88,19 @@ func Decompress(compressed *vector.Vector) (*vector.Vector, error) {
 		return compressed, nil
 	}
 
-	createInitialDictionary := func() *dictionary.Dictionary {
-		dict := dictionary.NewWithSize(uint(initialDictSize))
-
-		for i := uint16(0); i < initialDictSize; i++ {
-			bv := vector.New(1)
-			bv.MustSet(0, byte(i))
-			dict.Set(i, bv)
-		}
-
-		return dict
+	size := compressed.MustGet(0).(uint16)
+	if !isValidDictionarySize(size) {
+		return nil, fmt.Errorf("the data is compressed with an invalid dictionary size %d", size)
 	}
 
-	size := compressed.MustGet(0).(uint16)
-
-	dict := createInitialDictionary()
+	dict := createInitialDecompressDictionary()
 
 	result := vector.New()
 	word := vector.New()
 
 	for i := 1; i < compressed.Size(); i++ {
 		if dict.Size() == int(size) {
-			dict = createInitialDictionary()
+			dict = createInitialDecompressDictionary()
 		}
 
 		code := compressed.MustGet(i)
@@ -148,4 +133,40 @@ func Decompress(compressed *vector.Vector) (*vector.Vector, error) {
 	}
 
 	return result, nil
+}
+
+func createInitialCompressDictionary() *dictionary.Dictionary {
+	dict := dictionary.NewWithSize(uint(initialDictSize))
+
+	for i := uint16(0); i < initialDictSize; i++ {
+		dict.Set(string([]byte{byte(i)}), i)
+	}
+
+	return dict
+}
+
+func createInitialDecompressDictionary() *dictionary.Dictionary {
+	dict := dictionary.NewWithSize(uint(initialDictSize))
+
+	for i := uint16(0); i < initialDictSize; i++ {
+		bv := vector.New(1)
+		bv.MustSet(0, byte(i))
+		dict.Set(i, bv)
+	}
+
+	return dict
+}
+
+func isValidDictionarySize(size uint16) bool {
+	validSizes := []DictionarySize{
+		XS, S, M, L, XL,
+	}
+
+	for _, dictionarySize := range validSizes {
+		if dictionarySize == DictionarySize(size) {
+			return true
+		}
+	}
+
+	return false
 }

@@ -63,10 +63,7 @@ func testLZW(uncompressed *vector.Vector) error {
 		log.Printf("Testing LZW compression with dictionary size of %d bytes", dictSize)
 		compressStart := time.Now()
 
-		compressed, err := lzw.CompressWithDictSize(uncompressed, dictSize)
-		if err != nil {
-			return fmt.Errorf("lzw compression failed: %s", err)
-		}
+		compressed := lzw.CompressWithDictSize(uncompressed, dictSize)
 
 		compressDuration := time.Since(compressStart).Microseconds()
 		log.Printf(
