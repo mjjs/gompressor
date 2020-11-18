@@ -246,7 +246,12 @@ func compressHuffmanCodes(codes *vector.Vector) (compressedCodes *vector.Vector,
 		}
 	}
 
-	return compressedCodes, totalBits % 8
+	lastByteInBits = totalBits % 8
+	if lastByteInBits == 0 {
+		lastByteInBits = 8
+	}
+
+	return compressedCodes, lastByteInBits
 }
 
 func isLeafNode(n *huffmanTreeNode) bool {
