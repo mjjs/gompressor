@@ -40,11 +40,12 @@ var lzwDictSizes = []lzw.DictionarySize{
 
 func main() {
 	for _, filename := range fileNames {
-		log.Printf("RUNNING TESTS FOR FILE %s", strings.Split(filename, "/")[2])
+		log.Printf("-----RUNNING TESTS FOR FILE %s-----", strings.Split(filename, "/")[2])
 		byteVector, err := readTestFile(filename)
 		if err != nil {
 			panic(err)
 		}
+		log.Printf("Original size %d bytes", byteVector.Size())
 
 		if err := testLZW(byteVector); err != nil {
 			panic(err)
@@ -57,7 +58,7 @@ func main() {
 }
 
 func testLZW(uncompressed *vector.Vector) error {
-	originalSize := uncompressed.Size() * 8
+	originalSize := uncompressed.Size()
 
 	for _, dictSize := range lzwDictSizes {
 		log.Printf("Testing LZW compression with dictionary size of %d bytes", dictSize)
@@ -72,13 +73,13 @@ func testLZW(uncompressed *vector.Vector) error {
 			float64(compressDuration)/float64(1_000_000),
 		)
 
-		compressedSize := compressed.Size() * 8
+		compressedSize := compressed.Size() * 2
 		ratio := float64(compressedSize) / float64(originalSize)
 
 		log.Printf(
 			"Compressed size is: %d bytes, which is %.2f%% of original",
 			compressedSize,
-			ratio,
+			ratio*100,
 		)
 
 		decompressStart := time.Now()
@@ -105,7 +106,7 @@ func testLZW(uncompressed *vector.Vector) error {
 }
 
 func testHuffman(uncompressed *vector.Vector) error {
-	originalSize := uncompressed.Size() * 8
+	originalSize := uncompressed.Size()
 
 	log.Println("Testing Huffman compression")
 
@@ -120,13 +121,13 @@ func testHuffman(uncompressed *vector.Vector) error {
 		float64(compressDuration)/float64(1_000_000),
 	)
 
-	compressedSize := compressed.Size() * 8
+	compressedSize := compressed.Size()
 	ratio := float64(compressedSize) / float64(originalSize)
 
 	log.Printf(
 		"Compressed size is: %d bytes, which is %.2f%% of original",
 		compressedSize,
-		ratio,
+		ratio*100,
 	)
 
 	decompressStart := time.Now()
