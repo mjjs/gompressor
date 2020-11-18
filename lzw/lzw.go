@@ -138,7 +138,7 @@ func Decompress(compressed *vector.Vector) (*vector.Vector, error) {
 func createInitialCompressDictionary() *dictionary.Dictionary {
 	dict := dictionary.NewWithSize(uint(initialDictSize))
 
-	for i := uint16(0); i < initialDictSize; i++ {
+	for i := uint16(0); i <= initialDictSize; i++ {
 		dict.Set(string([]byte{byte(i)}), i)
 	}
 
@@ -148,7 +148,7 @@ func createInitialCompressDictionary() *dictionary.Dictionary {
 func createInitialDecompressDictionary() *dictionary.Dictionary {
 	dict := dictionary.NewWithSize(uint(initialDictSize))
 
-	for i := uint16(0); i < initialDictSize; i++ {
+	for i := uint16(0); i <= initialDictSize; i++ {
 		bv := vector.New(1)
 		bv.MustSet(0, byte(i))
 		dict.Set(i, bv)
