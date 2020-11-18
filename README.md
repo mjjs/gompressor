@@ -6,6 +6,7 @@ Golang implementations of the LZM and Huffman code algorithms for lossless data 
 
 ## Documentation
 * [Project specification](./doc/projectspecification.md)
+* [Implementation documentation](./doc/implementation.md)
 
 ### Weekly reports
 * [Week 1](./doc/weeklyreport1.md)
