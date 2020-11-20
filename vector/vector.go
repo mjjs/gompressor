@@ -1,3 +1,4 @@
+// Package vector implements a dynamically growing array list.
 package vector
 
 import (

@@ -1,3 +1,4 @@
+// Package lzw implements the Lempel-Ziv-Welch lossless data compression algorithm.
 package lzw
 
 import (

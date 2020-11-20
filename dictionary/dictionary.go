@@ -1,3 +1,6 @@
+// Package dictionary implements a hash table. The hash table accepts strings,
+// uint16 values and bytes as keys, which are the data types used by the
+// compression that require the dictionary.
 package dictionary
 
 import (

@@ -1,3 +1,4 @@
+// Package linkedlist implements a singly linked list.
 package linkedlist
 
 type node struct {

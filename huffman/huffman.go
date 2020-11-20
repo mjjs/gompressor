@@ -1,5 +1,5 @@
 // Package huffman implements the huffman coding algorithm which can be used
-// for compressing data.
+// for lossless data compression.
 package huffman
 
 import (
