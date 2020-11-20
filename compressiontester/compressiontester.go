@@ -1,9 +1,13 @@
 package main
 
 import (
+	"encoding/csv"
+	"flag"
 	"fmt"
 	"log"
+	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mjjs/gompressor/fileio"
@@ -12,19 +16,17 @@ import (
 	"github.com/mjjs/gompressor/vector"
 )
 
-// Load test file
-//
-// Run LZW tests:
-// * Test files with different dictionary sizes
-// * Max dictionary size, different file sizes
-//
-// Run Huffman tests:
-// * Different file sizes
-//
-// For all tests, log:
-// * Time to compress
-// * Compression ratio
-// * Time to decompress
+type testResult struct {
+	filename                   string
+	algorithm                  string
+	originalSizeBytes          int
+	compressedSizeBytes        int
+	compressRatio              float64
+	compressTimeMicroseconds   int64
+	decompressTimeMicroseconds int64
+	success                    bool
+	dictionarySize             uint16
+}
 
 const testFileNameA string = "../testdata/E.coli"
 const testFileNameB string = "../testdata/world192.txt"
@@ -39,117 +41,116 @@ var lzwDictSizes = []lzw.DictionarySize{
 }
 
 func main() {
-	for _, filename := range fileNames {
-		log.Printf("-----RUNNING TESTS FOR FILE %s-----", strings.Split(filename, "/")[2])
-		byteVector, err := readTestFile(filename)
+	parallel := flag.Bool("parallel", false, "Run tests in parallel")
+	flag.Parse()
+
+	lzwResults := []testResult{}
+	huffmanResults := []testResult{}
+
+	wg := sync.WaitGroup{}
+
+	for _, filepath := range fileNames {
+		byteVector, err := readTestFile(filepath)
 		if err != nil {
 			panic(err)
 		}
-		log.Printf("Original size %d bytes", byteVector.Size())
 
-		if err := testLZW(byteVector); err != nil {
-			panic(err)
+		filename := strings.Split(filepath, "/")[2]
+		log.Printf("Running tests for file %s", filename)
+
+		for _, dictSize := range lzwDictSizes {
+			if *parallel {
+				wg.Add(1)
+				go func(ds lzw.DictionarySize) {
+					result := testLZW(filename, ds, byteVector)
+					lzwResults = append(lzwResults, result)
+					wg.Done()
+				}(dictSize)
+			} else {
+				result := testLZW(filename, dictSize, byteVector)
+				lzwResults = append(lzwResults, result)
+			}
 		}
 
-		if err := testHuffman(byteVector); err != nil {
-			panic(err)
-		}
-	}
-}
-
-func testLZW(uncompressed *vector.Vector) error {
-	originalSize := uncompressed.Size()
-
-	for _, dictSize := range lzwDictSizes {
-		log.Printf("Testing LZW compression with dictionary size of %d bytes", dictSize)
-		compressStart := time.Now()
-
-		compressed := lzw.CompressWithDictSize(uncompressed, dictSize)
-
-		compressDuration := time.Since(compressStart).Microseconds()
-		log.Printf(
-			"Compression took %d µs (%.2f s)",
-			compressDuration,
-			float64(compressDuration)/float64(1_000_000),
-		)
-
-		compressedSize := compressed.Size() * 2
-		ratio := float64(compressedSize) / float64(originalSize)
-
-		log.Printf(
-			"Compressed size is: %d bytes, which is %.2f%% of original",
-			compressedSize,
-			ratio*100,
-		)
-
-		decompressStart := time.Now()
-		decompressed, err := lzw.Decompress(compressed)
-		if err != nil {
-			return fmt.Errorf("lzw decompression failed: %s", err)
-		}
-
-		decompressDuration := time.Since(decompressStart).Microseconds()
-		log.Printf(
-			"Decompression took %d µs (%.2f s)",
-			decompressDuration,
-			float64(decompressDuration)/float64(1_000_000),
-		)
-
-		if !compare(uncompressed, decompressed) {
-			log.Printf("FAILURE: Original and decompressed bytes do not match!")
+		if *parallel {
+			wg.Add(1)
+			go func() {
+				huffmanResult := testHuffman(filename, byteVector)
+				huffmanResults = append(huffmanResults, huffmanResult)
+				wg.Done()
+			}()
 		} else {
-			log.Printf("SUCCESS: Original and compressed bytes match.")
+			huffmanResult := testHuffman(filename, byteVector)
+			huffmanResults = append(huffmanResults, huffmanResult)
 		}
-		fmt.Println()
 	}
-	return nil
+
+	if *parallel {
+		wg.Wait()
+	}
+
+	writeCSV(lzwResults, "lzw.csv")
+	writeCSV(huffmanResults, "huffman.csv")
 }
 
-func testHuffman(uncompressed *vector.Vector) error {
+func testLZW(filename string, dictSize lzw.DictionarySize, uncompressed *vector.Vector) testResult {
 	originalSize := uncompressed.Size()
 
-	log.Println("Testing Huffman compression")
+	result := testResult{
+		algorithm:         "LZW",
+		filename:          filename,
+		dictionarySize:    uint16(dictSize),
+		originalSizeBytes: originalSize,
+	}
 
+	log.Printf("Testing LZW compression with dictionary size of %d bytes", dictSize)
 	compressStart := time.Now()
 
+	compressed := lzw.CompressWithDictSize(uncompressed, dictSize)
+
+	result.compressTimeMicroseconds = time.Since(compressStart).Microseconds()
+	result.compressedSizeBytes = compressed.Size() * 2 // Codes are 16 bits
+	result.compressRatio = float64(result.compressedSizeBytes) / float64(originalSize) * 100
+
+	decompressStart := time.Now()
+	decompressed, err := lzw.Decompress(compressed)
+	if err != nil {
+		panic(fmt.Sprintf("lzw decompression failed: %s", err))
+	}
+
+	result.decompressTimeMicroseconds = time.Since(decompressStart).Microseconds()
+	result.success = compare(uncompressed, decompressed)
+
+	return result
+}
+
+func testHuffman(filename string, uncompressed *vector.Vector) testResult {
+	log.Println("Testing Huffman compression")
+	originalSize := uncompressed.Size()
+
+	result := testResult{
+		algorithm:         "Huffman",
+		filename:          filename,
+		originalSizeBytes: originalSize,
+	}
+
+	compressStart := time.Now()
 	compressed := huffman.Compress(uncompressed)
 
-	compressDuration := time.Since(compressStart).Microseconds()
-	log.Printf(
-		"Compression took %d µs (%.2f s)",
-		compressDuration,
-		float64(compressDuration)/float64(1_000_000),
-	)
-
-	compressedSize := compressed.Size()
-	ratio := float64(compressedSize) / float64(originalSize)
-
-	log.Printf(
-		"Compressed size is: %d bytes, which is %.2f%% of original",
-		compressedSize,
-		ratio*100,
-	)
+	result.compressTimeMicroseconds = time.Since(compressStart).Microseconds()
+	result.compressedSizeBytes = compressed.Size()
+	result.compressRatio = float64(result.compressedSizeBytes) / float64(originalSize) * 100
 
 	decompressStart := time.Now()
 	decompressed, err := huffman.Decompress(compressed)
 	if err != nil {
-		return fmt.Errorf("lzw decompression failed: %s", err)
+		panic(fmt.Sprintf("lzw decompression failed: %s", err))
 	}
 
-	decompressDuration := time.Since(decompressStart).Microseconds()
-	log.Printf(
-		"Decompression took %d µs (%.2f s)",
-		decompressDuration,
-		float64(decompressDuration)/float64(1_000_000),
-	)
+	result.decompressTimeMicroseconds = time.Since(decompressStart).Microseconds()
+	result.success = compare(uncompressed, decompressed)
 
-	if !compare(uncompressed, decompressed) {
-		log.Printf("FAILURE: Original and decompressed bytes do not match!")
-	} else {
-		log.Printf("SUCCESS: Original and compressed bytes match.")
-	}
-	fmt.Println()
-	return nil
+	return result
 }
 
 func readTestFile(fn string) (*vector.Vector, error) {
@@ -181,4 +182,38 @@ func compare(a *vector.Vector, b *vector.Vector) bool {
 	}
 
 	return true
+}
+
+func writeCSV(results []testResult, name string) {
+	headers := []string{"filename", "algorithm", "original size", "compressed size", "compression ratio", "compress time", "decompress time", "dictionary size"}
+	records := [][]string{headers}
+
+	for _, result := range results {
+		record := []string{
+			result.filename,
+			result.algorithm,
+			fmt.Sprintf("%d", result.originalSizeBytes),
+			fmt.Sprintf("%d", result.compressedSizeBytes),
+			fmt.Sprintf("%.2f", result.compressRatio),
+			fmt.Sprintf("%d", result.compressTimeMicroseconds),
+			fmt.Sprintf("%d", result.decompressTimeMicroseconds),
+			fmt.Sprintf("%d", result.dictionarySize),
+		}
+
+		records = append(records, record)
+	}
+
+	fp, err := os.Create(name)
+	if err != nil {
+		panic(err)
+	}
+
+	defer fp.Close()
+
+	writer := csv.NewWriter(fp)
+	writer.WriteAll(records)
+
+	if err := writer.Error(); err != nil {
+		log.Fatalf("csv write failed: %s", err)
+	}
 }
