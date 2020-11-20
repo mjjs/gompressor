@@ -1,4 +1,4 @@
-# Implementation documentation
+# Implementation documentation - WORK IN PROGRESS
 
 ## Project structure
 All the code in this project are separated in their own packages, which are named

@@ -1,4 +1,4 @@
 filename,algorithm,original size,compressed size,compression ratio,compress time,decompress time,dictionary size
-E.coli,Huffman,4638690,1159685,25.00,857135,267945,0
-world192.txt,Huffman,2473400,1558877,63.03,812418,296477,0
-Randomdata,Huffman,4638690,4639458,100.02,2173088,989635,0
+world192.txt,Huffman,2473400,1558877,63.03,2495041,1410160,0
+E.coli,Huffman,4638690,1159685,25.00,2932067,1050157,0
+Randomdata,Huffman,2000000,2000768,100.04,3058153,1170514,0

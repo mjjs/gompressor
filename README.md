@@ -7,6 +7,7 @@ Golang implementations of the LZM and Huffman code algorithms for lossless data 
 ## Documentation
 * [Project specification](./doc/projectspecification.md)
 * [Implementation documentation](./doc/implementation.md)
+* [Testing documentation](./doc/testing.md)
 * [GoDoc](https://godoc.org/github.com/mjjs/gompressor)
 
 ### Weekly reports
