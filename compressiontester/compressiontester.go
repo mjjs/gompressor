@@ -106,7 +106,10 @@ func testLZW(filename string, dictSize lzw.DictionarySize, uncompressed *vector.
 	log.Printf("Testing LZW compression with dictionary size of %d bytes", dictSize)
 	compressStart := time.Now()
 
-	compressed := lzw.CompressWithDictSize(uncompressed, dictSize)
+	compressed, err := lzw.CompressWithDictSize(uncompressed, dictSize)
+	if err != nil {
+		panic(fmt.Sprintf("lzw compression failed: %s", err))
+	}
 
 	result.compressTimeMicroseconds = time.Since(compressStart).Microseconds()
 	result.compressedSizeBytes = compressed.Size() * 2 // Codes are 16 bits

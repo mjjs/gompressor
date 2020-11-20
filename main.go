@@ -61,7 +61,10 @@ func compress(algorithm string, inputFilename string, outputFilename string) err
 		}
 
 	case "lzw":
-		compressed = lzw.Compress(bytes)
+		compressed, err = lzw.Compress(bytes)
+		if err != nil {
+			return fmt.Errorf("Could not compress: %s", err)
+		}
 
 		err = fileio.WriteLZWFile(compressed, outputFilename)
 		if err != nil {

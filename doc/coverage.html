@@ -3,7 +3,7 @@
 <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-		<title>huffman: Go Coverage Report</title>
+		<title>dictionary: Go Coverage Report</title>
 		<style>
 			body {
 				background: black;
@@ -55,13 +55,13 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">github.com/mjjs/gompressor/huffman/huffman.go (99.1%)</option>
+				<option value="file0">github.com/mjjs/gompressor/dictionary/dictionary.go (91.4%)</option>
 				
-				<option value="file1">github.com/mjjs/gompressor/linkedlist/linkedlist.go (100.0%)</option>
+				<option value="file1">github.com/mjjs/gompressor/huffman/huffman.go (97.4%)</option>
 				
-				<option value="file2">github.com/mjjs/gompressor/lzw/dictionary/dictionary.go (91.4%)</option>
+				<option value="file2">github.com/mjjs/gompressor/linkedlist/linkedlist.go (100.0%)</option>
 				
-				<option value="file3">github.com/mjjs/gompressor/lzw/lzw.go (94.5%)</option>
+				<option value="file3">github.com/mjjs/gompressor/lzw/lzw.go (98.6%)</option>
 				
 				<option value="file4">github.com/mjjs/gompressor/priorityqueue/priorityqueue.go (100.0%)</option>
 				
@@ -79,392 +79,10 @@
 		</div>
 		<div id="content">
 		
-		<pre class="file" id="file0" style="display: none">// Package huffman implements the huffman coding algorithm which can be used
-// for compressing data.
-package huffman
-
-import (
-        "errors"
-        "fmt"
-
-        "github.com/mjjs/gompressor/lzw/dictionary"
-        "github.com/mjjs/gompressor/priorityqueue"
-        "github.com/mjjs/gompressor/vector"
-)
-
-type huffmanTreeNode struct {
-        frequency int
-        value     byte
-        left      *huffmanTreeNode
-        right     *huffmanTreeNode
-}
-
-// Compress takes in a vector of uncompressed bytes and outputs a vector of
-// compressed bytes.
-func Compress(uncompressed *vector.Vector) *vector.Vector <span class="cov8" title="1">{
-        frequencies := createFrequencyTable(uncompressed)
-        prefixTree := buildPrefixTree(frequencies)
-
-        codes := dictionary.New()
-        buildCodes(prefixTree, vector.New(), codes)
-
-        compressedPrefixTree := vector.New()
-        compressPrefixTree(prefixTree, compressedPrefixTree)
-
-        compressedString := encodeToHuffmanCodes(uncompressed, codes)
-
-        totalBits, compressedCodes := compressHuffmanCodes(compressedString)
-
-        compressed := vector.New(0, uint(compressedPrefixTree.Size()+compressedCodes.Size()))
-
-        compressed.Append(byte(totalBits % 8))
-
-        for i := 0; i &lt; compressedPrefixTree.Size(); i++ </span><span class="cov8" title="1">{
-                compressed.Append(compressedPrefixTree.MustGet(i))
-        }</span>
-
-        <span class="cov8" title="1">for i := 0; i &lt; compressedCodes.Size(); i++ </span><span class="cov8" title="1">{
-                compressed.Append(compressedCodes.MustGet(i))
-        }</span>
-
-        <span class="cov8" title="1">return compressed</span>
-}
-
-// Decompress takes in a vector of huffman compressed bytes and outputs a vector
-// of uncompressed bytes. Returns a non-nil error if the decompression fails.
-func Decompress(compressed *vector.Vector) (*vector.Vector, error) <span class="cov8" title="1">{
-        lastByteBits := int(compressed.MustGet(0).(byte))
-
-        prefixTree, nextIndex := decompressPrefixTree(compressed, 1)
-        decompressed := vector.New()
-
-        var err error
-
-        codes := decompressHuffmanCodes(compressed, nextIndex, lastByteBits)
-
-        nextIndex = 0
-
-        for nextIndex &lt; codes.Size() </span><span class="cov8" title="1">{
-                nextIndex, err = decodeHuffmanCode(codes, nextIndex, prefixTree, decompressed)
-
-                if err != nil </span><span class="cov8" title="1">{
-                        return nil, err
-                }</span>
-        }
-
-        <span class="cov8" title="1">return decompressed, nil</span>
-}
-
-func createFrequencyTable(bytes *vector.Vector) *dictionary.Dictionary <span class="cov8" title="1">{
-        dict := dictionary.New()
-        for i := 0; i &lt; bytes.Size(); i++ </span><span class="cov8" title="1">{
-                byt := bytes.MustGet(i)
-
-                if frequency, exists := dict.Get(byt); !exists </span><span class="cov8" title="1">{
-                        dict.Set(byt, 1)
-                }</span> else<span class="cov8" title="1"> {
-                        dict.Set(byt, frequency.(int)+1)
-                }</span>
-        }
-
-        <span class="cov8" title="1">return dict</span>
-}
-
-func buildPrefixTree(byteFrequencies *dictionary.Dictionary) *huffmanTreeNode <span class="cov8" title="1">{
-        tree := new(priorityqueue.PriorityQueue)
-        keys := byteFrequencies.Keys()
-
-        for i := 0; i &lt; keys.Size(); i++ </span><span class="cov8" title="1">{
-                byt := keys.MustGet(i)
-                frequency, _ := byteFrequencies.Get(byt)
-
-                tree.Enqueue(frequency.(int), &amp;huffmanTreeNode{frequency: frequency.(int), value: byt.(byte)})
-        }</span>
-
-        <span class="cov8" title="1">for tree.Size() &gt; 1 </span><span class="cov8" title="1">{
-                aPrio, a := tree.Dequeue()
-                bPrio, b := tree.Dequeue()
-
-                newPrio := aPrio + bPrio
-
-                node := &amp;huffmanTreeNode{frequency: newPrio, left: a.(*huffmanTreeNode), right: b.(*huffmanTreeNode)}
-
-                tree.Enqueue(newPrio, node)
-        }</span>
-
-        <span class="cov8" title="1">_, root := tree.Dequeue()
-
-        return root.(*huffmanTreeNode)</span>
-}
-
-func buildCodes(root *huffmanTreeNode, code *vector.Vector, result *dictionary.Dictionary) <span class="cov8" title="1">{
-        if root == nil </span><span class="cov8" title="1">{
-                return
-        }</span>
-
-        <span class="cov8" title="1">if isLeafNode(root) </span><span class="cov8" title="1">{
-                result.Set(root.value, code)
-        }</span>
-
-        <span class="cov8" title="1">buildCodes(root.left, code.AppendToCopy(byte(0)), result)
-        buildCodes(root.right, code.AppendToCopy(byte(1)), result)</span>
-}
-
-func compressPrefixTree(root *huffmanTreeNode, to *vector.Vector) <span class="cov8" title="1">{
-        switch isLeafNode(root) </span>{
-        case true:<span class="cov8" title="1">
-                // This can be optimzied to 1 bit if needed
-                to.Append(byte(1))
-                to.Append(root.value)</span>
-        case false:<span class="cov8" title="1">
-                // This can be optimzied to 1 bit if needed
-                to.Append(byte(0))
-                compressPrefixTree(root.left, to)
-                compressPrefixTree(root.right, to)</span>
-        }
-}
-
-func decompressPrefixTree(compressed *vector.Vector, index int) (*huffmanTreeNode, int) <span class="cov8" title="1">{
-        byt := compressed.MustGet(index).(byte)
-        switch byt </span>{
-        case byte(0):<span class="cov8" title="1">
-                left, nextIndex := decompressPrefixTree(compressed, index+1)
-                right, nextIndex := decompressPrefixTree(compressed, nextIndex)
-                return &amp;huffmanTreeNode{left: left, right: right}, nextIndex</span>
-
-        case byte(1):<span class="cov8" title="1">
-                return &amp;huffmanTreeNode{value: compressed.MustGet(index + 1).(byte)}, index + 2</span>
-
-        default:<span class="cov8" title="1">
-                return nil, index + 1</span>
-        }
-}
-
-func decompressHuffmanCodes(compressed *vector.Vector, index int, lastByteBits int) *vector.Vector <span class="cov8" title="1">{
-        huffmanCodes := vector.New(0, uint(compressed.Size()-index))
-
-        for i := index; i &lt; compressed.Size(); i++ </span><span class="cov8" title="1">{
-                codeByte := compressed.MustGet(i).(byte)
-
-                totalBits := 7
-                if i == compressed.Size()-1 </span><span class="cov8" title="1">{
-                        totalBits = lastByteBits - 1
-                }</span>
-
-                <span class="cov8" title="1">for j := totalBits; j &gt;= 0; j-- </span><span class="cov8" title="1">{
-                        huffmanCodes.Append((codeByte &gt;&gt; j) &amp; 1)
-                }</span>
-        }
-
-        <span class="cov8" title="1">return huffmanCodes</span>
-}
-
-func decodeHuffmanCode(codes *vector.Vector, index int, root *huffmanTreeNode, to *vector.Vector) (int, error) <span class="cov8" title="1">{
-        if root == nil </span><span class="cov8" title="1">{
-                return 0, errors.New("No prefix tree supplied")
-        }</span>
-
-        <span class="cov8" title="1">if isLeafNode(root) </span><span class="cov8" title="1">{
-                to.Append(root.value)
-                return index, nil
-        }</span>
-
-        <span class="cov8" title="1">next := codes.MustGet(index)
-        switch next </span>{
-        case byte(0):<span class="cov8" title="1">
-                return decodeHuffmanCode(codes, index+1, root.left, to)</span>
-        case byte(1):<span class="cov8" title="1">
-                return decodeHuffmanCode(codes, index+1, root.right, to)</span>
-        default:<span class="cov0" title="0">
-                return 0, fmt.Errorf("An unexpected symbol %x found in the compressed data", next)</span>
-        }
-}
-
-func encodeToHuffmanCodes(uncompressed *vector.Vector, codes *dictionary.Dictionary) *vector.Vector <span class="cov8" title="1">{
-        encodedHuffmanCodes := vector.New()
-
-        for i := 0; i &lt; uncompressed.Size(); i++ </span><span class="cov8" title="1">{
-                byt := uncompressed.MustGet(i)
-
-                iCode, _ := codes.Get(byt)
-                code := iCode.(*vector.Vector)
-
-                for j := 0; j &lt; code.Size(); j++ </span><span class="cov8" title="1">{
-                        encodedHuffmanCodes.Append(code.MustGet(j))
-                }</span>
-        }
-
-        <span class="cov8" title="1">return encodedHuffmanCodes</span>
-}
-
-func compressHuffmanCodes(codes *vector.Vector) (totalBits int, compressedCodes *vector.Vector) <span class="cov8" title="1">{
-        currentCode := vector.New(0, 8)
-        encodedCode := byte(0)
-
-        compressedCodes = vector.New()
-
-        for i := 0; i &lt; codes.Size(); i++ </span><span class="cov8" title="1">{
-                currentCode.Append(codes.MustGet(i))
-
-                if currentCode.Size() == 8 || i == codes.Size()-1 </span><span class="cov8" title="1">{
-                        for j := 0; j &lt; currentCode.Size(); j++ </span><span class="cov8" title="1">{
-                                totalBits++
-
-                                if currentCode.MustGet(j) == byte(0) </span><span class="cov8" title="1">{
-                                        encodedCode &lt;&lt;= 1
-                                }</span> else<span class="cov8" title="1"> {
-                                        encodedCode &lt;&lt;= 1
-                                        encodedCode |= 1
-                                }</span>
-                        }
-
-                        <span class="cov8" title="1">compressedCodes.Append(encodedCode)
-                        currentCode = vector.New(0, 8)
-                        encodedCode = byte(0)</span>
-                }
-        }
-
-        <span class="cov8" title="1">return totalBits, compressedCodes</span>
-}
-
-func isLeafNode(n *huffmanTreeNode) bool <span class="cov8" title="1">{
-        return n != nil &amp;&amp; n.left == nil &amp;&amp; n.right == nil
-}</span>
-</pre>
-		
-		<pre class="file" id="file1" style="display: none">package linkedlist
-
-type node struct {
-        value interface{}
-        next  *node
-}
-
-// LinkedList is the main structure of the linked list.
-type LinkedList struct {
-        head *node
-        tail *node
-        size int
-}
-
-// New returns a pointer to a new LinkedList and sets root as the head and tail nodes.
-func New(root interface{}) *LinkedList <span class="cov8" title="1">{
-        n := &amp;node{value: root}
-
-        return &amp;LinkedList{
-                head: n,
-                tail: n,
-                size: 1,
-        }
-}</span>
-
-// Append appends the given value to the end of the list.
-func (ll *LinkedList) Append(value interface{}) <span class="cov8" title="1">{
-        newNode := &amp;node{value: value}
-
-        if ll.size == 0 </span><span class="cov8" title="1">{
-                ll.head = newNode
-                ll.tail = newNode
-        }</span> else<span class="cov8" title="1"> {
-                ll.tail.next = newNode
-                ll.tail = newNode
-        }</span>
-
-        <span class="cov8" title="1">ll.size++</span>
-}
-
-// Remove removes value from the linked list.
-func (ll *LinkedList) Remove(value interface{}) <span class="cov8" title="1">{
-        if ll.head.value == value </span><span class="cov8" title="1">{
-                ll.head = ll.head.next
-        }</span>
-
-        <span class="cov8" title="1">removed := ll.remove(ll.head, value)
-        if removed </span><span class="cov8" title="1">{
-                ll.size--
-        }</span>
-}
-
-// Find finds the given value from the linked list and returns it if found.
-// A boolean value is returned indicating whether or not the value actually
-// exists in the linked list.
-func (ll *LinkedList) Find(value interface{}) (interface{}, bool) <span class="cov8" title="1">{
-        result := find(ll.head, value)
-        if result == nil </span><span class="cov8" title="1">{
-                return nil, false
-        }</span>
-
-        <span class="cov8" title="1">return result.value, true</span>
-}
-
-// Head returns the head of the linked list.
-func (ll *LinkedList) Head() interface{} <span class="cov8" title="1">{
-        if ll.head == nil </span><span class="cov8" title="1">{
-                return nil
-        }</span>
-
-        <span class="cov8" title="1">return ll.head.value</span>
-}
-
-// Tail returns the tail of the linked list.
-func (ll *LinkedList) Tail() interface{} <span class="cov8" title="1">{
-        if ll.tail == nil </span><span class="cov8" title="1">{
-                return nil
-        }</span>
-
-        <span class="cov8" title="1">return ll.tail.value</span>
-}
-
-// Size returns the number of elements in the linked list.
-func (ll *LinkedList) Size() int <span class="cov8" title="1">{
-        return ll.size
-}</span>
-
-// ForEach executes f for each element in the list.
-func (ll *LinkedList) ForEach(f func(val interface{})) <span class="cov8" title="1">{
-        execFunc(ll.head, f)
-}</span>
-
-func (ll *LinkedList) remove(n *node, val interface{}) bool <span class="cov8" title="1">{
-        if n == nil || n.next == nil </span><span class="cov8" title="1">{
-                return false
-        }</span>
-
-        <span class="cov8" title="1">if n.next.value == val </span><span class="cov8" title="1">{
-                if n.next == ll.tail </span><span class="cov8" title="1">{
-                        ll.tail = n
-                }</span>
-
-                <span class="cov8" title="1">n.next = n.next.next
-                return true</span>
-        }
-
-        <span class="cov8" title="1">return ll.remove(n.next, val)</span>
-}
-
-func execFunc(n *node, f func(val interface{})) <span class="cov8" title="1">{
-        if n == nil </span><span class="cov8" title="1">{
-                return
-        }</span>
-
-        <span class="cov8" title="1">f(n.value)
-
-        execFunc(n.next, f)</span>
-}
-
-func find(n *node, val interface{}) *node <span class="cov8" title="1">{
-        if n == nil </span><span class="cov8" title="1">{
-                return nil
-        }</span>
-
-        <span class="cov8" title="1">if n.value == val </span><span class="cov8" title="1">{
-                return n
-        }</span>
-
-        <span class="cov8" title="1">return find(n.next, val)</span>
-}
-</pre>
-		
-		<pre class="file" id="file2" style="display: none">package dictionary
+		<pre class="file" id="file0" style="display: none">// Package dictionary implements a hash table. The hash table accepts strings,
+// uint16 values and bytes as keys, which are the data types used by the
+// compression that require the dictionary.
+package dictionary
 
 import (
         "github.com/mjjs/gompressor/linkedlist"
@@ -478,7 +96,7 @@ type dictionaryNode struct {
         value interface{}
 }
 
-// Dictionary is a hash table data structure used by the LZW algorithm.
+// Dictionary implements a hashtable.
 type Dictionary struct {
         buckets []*linkedlist.LinkedList
         size    int
@@ -648,46 +266,456 @@ func hash(key interface{}) int64 <span class="cov8" title="1">{
 }
 </pre>
 		
-		<pre class="file" id="file3" style="display: none">package lzw
+		<pre class="file" id="file1" style="display: none">// Package huffman implements the huffman coding algorithm which can be used
+// for lossless data compression.
+package huffman
 
 import (
         "errors"
         "fmt"
 
-        "github.com/mjjs/gompressor/lzw/dictionary"
+        "github.com/mjjs/gompressor/dictionary"
+        "github.com/mjjs/gompressor/priorityqueue"
         "github.com/mjjs/gompressor/vector"
 )
 
-const (
-        initialDictSize uint16 = 256
-        maxDictSize     uint16 = 65535
+type huffmanTreeNode struct {
+        frequency int
+        value     byte
+        left      *huffmanTreeNode
+        right     *huffmanTreeNode
+}
+
+// Compress takes in a vector of uncompressed bytes and outputs a vector of
+// compressed bytes.
+func Compress(uncompressed *vector.Vector) *vector.Vector <span class="cov8" title="1">{
+        byteFrequencies := createFrequencyTable(uncompressed)
+        prefixTree := buildPrefixTree(byteFrequencies)
+
+        codes := dictionary.New()
+        buildCodes(prefixTree, vector.New(), codes)
+
+        compressedPrefixTree := vector.New()
+        compressPrefixTree(prefixTree, compressedPrefixTree)
+
+        encodedBytes := encodeToHuffmanCodes(uncompressed, codes)
+
+        compressedCodes, lastByteInBits := compressHuffmanCodes(encodedBytes)
+
+        // Reserve space for the last byte size, prefix tree and huffman codes
+        compressed := vector.New(0, 1+uint(compressedPrefixTree.Size()+compressedCodes.Size()))
+        compressed.Append(byte(lastByteInBits))
+
+        for i := 0; i &lt; compressedPrefixTree.Size(); i++ </span><span class="cov8" title="1">{
+                compressed.Append(compressedPrefixTree.MustGet(i))
+        }</span>
+
+        <span class="cov8" title="1">for i := 0; i &lt; compressedCodes.Size(); i++ </span><span class="cov8" title="1">{
+                compressed.Append(compressedCodes.MustGet(i))
+        }</span>
+
+        <span class="cov8" title="1">return compressed</span>
+}
+
+// Decompress takes in a vector of huffman compressed bytes and outputs a vector
+// of uncompressed bytes. Returns a non-nil error if the decompression fails.
+func Decompress(compressed *vector.Vector) (*vector.Vector, error) <span class="cov8" title="1">{
+        if compressed.Size() == 0 </span><span class="cov0" title="0">{
+                return nil, errors.New("unable to decompress empty data")
+        }</span>
+
+        <span class="cov8" title="1">lastByteInBits := int(compressed.MustGet(0).(byte))
+
+        prefixTree, nextIndex := decompressPrefixTree(compressed, 1)
+        decompressed := vector.New()
+
+        var err error
+
+        codes := decompressHuffmanCodes(compressed, nextIndex, lastByteInBits)
+
+        nextIndex = 0
+
+        for nextIndex &lt; codes.Size() </span><span class="cov8" title="1">{
+                nextIndex, err = decodeHuffmanCode(codes, nextIndex, prefixTree, decompressed)
+
+                if err != nil </span><span class="cov8" title="1">{
+                        return nil, err
+                }</span>
+        }
+
+        <span class="cov8" title="1">return decompressed, nil</span>
+}
+
+func createFrequencyTable(bytes *vector.Vector) *dictionary.Dictionary <span class="cov8" title="1">{
+        dict := dictionary.New()
+        for i := 0; i &lt; bytes.Size(); i++ </span><span class="cov8" title="1">{
+                byt := bytes.MustGet(i)
+
+                if frequency, exists := dict.Get(byt); !exists </span><span class="cov8" title="1">{
+                        dict.Set(byt, 1)
+                }</span> else<span class="cov8" title="1"> {
+                        dict.Set(byt, frequency.(int)+1)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return dict</span>
+}
+
+func buildPrefixTree(byteFrequencies *dictionary.Dictionary) *huffmanTreeNode <span class="cov8" title="1">{
+        tree := new(priorityqueue.PriorityQueue)
+        keys := byteFrequencies.Keys()
+
+        for i := 0; i &lt; keys.Size(); i++ </span><span class="cov8" title="1">{
+                byt := keys.MustGet(i)
+                frequency, _ := byteFrequencies.Get(byt)
+
+                tree.Enqueue(frequency.(int), &amp;huffmanTreeNode{frequency: frequency.(int), value: byt.(byte)})
+        }</span>
+
+        <span class="cov8" title="1">for tree.Size() &gt; 1 </span><span class="cov8" title="1">{
+                aPrio, a := tree.Dequeue()
+                bPrio, b := tree.Dequeue()
+
+                newPrio := aPrio + bPrio
+
+                node := &amp;huffmanTreeNode{frequency: newPrio, left: a.(*huffmanTreeNode), right: b.(*huffmanTreeNode)}
+
+                tree.Enqueue(newPrio, node)
+        }</span>
+
+        <span class="cov8" title="1">_, root := tree.Dequeue()
+
+        return root.(*huffmanTreeNode)</span>
+}
+
+func buildCodes(root *huffmanTreeNode, code *vector.Vector, result *dictionary.Dictionary) <span class="cov8" title="1">{
+        if root == nil </span><span class="cov8" title="1">{
+                return
+        }</span>
+
+        <span class="cov8" title="1">if isLeafNode(root) </span><span class="cov8" title="1">{
+                result.Set(root.value, code)
+        }</span>
+
+        <span class="cov8" title="1">buildCodes(root.left, code.AppendToCopy(byte(0)), result)
+        buildCodes(root.right, code.AppendToCopy(byte(1)), result)</span>
+}
+
+func compressPrefixTree(root *huffmanTreeNode, to *vector.Vector) <span class="cov8" title="1">{
+        switch isLeafNode(root) </span>{
+        case true:<span class="cov8" title="1">
+                to.Append(byte(1))
+                to.Append(root.value)</span>
+        case false:<span class="cov8" title="1">
+                to.Append(byte(0))
+                compressPrefixTree(root.left, to)
+                compressPrefixTree(root.right, to)</span>
+        }
+}
+
+func decompressPrefixTree(compressed *vector.Vector, index int) (*huffmanTreeNode, int) <span class="cov8" title="1">{
+        byt := compressed.MustGet(index).(byte)
+        switch byt </span>{
+        case byte(0):<span class="cov8" title="1">
+                left, nextIndex := decompressPrefixTree(compressed, index+1)
+                right, nextIndex := decompressPrefixTree(compressed, nextIndex)
+                return &amp;huffmanTreeNode{left: left, right: right}, nextIndex</span>
+
+        case byte(1):<span class="cov8" title="1">
+                return &amp;huffmanTreeNode{value: compressed.MustGet(index + 1).(byte)}, index + 2</span>
+
+        default:<span class="cov8" title="1">
+                return nil, index + 1</span>
+        }
+}
+
+func decompressHuffmanCodes(compressed *vector.Vector, index int, lastByteInBits int) *vector.Vector <span class="cov8" title="1">{
+        huffmanCodes := vector.New(0, uint(compressed.Size()-index))
+
+        for i := index; i &lt; compressed.Size(); i++ </span><span class="cov8" title="1">{
+                codeByte := compressed.MustGet(i).(byte)
+
+                totalBits := 7
+                if i == compressed.Size()-1 </span><span class="cov8" title="1">{
+                        totalBits = lastByteInBits - 1
+                }</span>
+
+                <span class="cov8" title="1">for j := totalBits; j &gt;= 0; j-- </span><span class="cov8" title="1">{
+                        huffmanCodes.Append((codeByte &gt;&gt; j) &amp; 1)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return huffmanCodes</span>
+}
+
+func decodeHuffmanCode(codes *vector.Vector, index int, root *huffmanTreeNode, to *vector.Vector) (int, error) <span class="cov8" title="1">{
+        if root == nil </span><span class="cov8" title="1">{
+                return 0, errors.New("No prefix tree supplied")
+        }</span>
+
+        <span class="cov8" title="1">if isLeafNode(root) </span><span class="cov8" title="1">{
+                to.Append(root.value)
+                return index, nil
+        }</span>
+
+        <span class="cov8" title="1">next := codes.MustGet(index)
+        switch next </span>{
+        case byte(0):<span class="cov8" title="1">
+                return decodeHuffmanCode(codes, index+1, root.left, to)</span>
+        case byte(1):<span class="cov8" title="1">
+                return decodeHuffmanCode(codes, index+1, root.right, to)</span>
+        default:<span class="cov0" title="0">
+                return 0, fmt.Errorf("An unexpected symbol %x found in the compressed data", next)</span>
+        }
+}
+
+func encodeToHuffmanCodes(uncompressed *vector.Vector, codes *dictionary.Dictionary) *vector.Vector <span class="cov8" title="1">{
+        encodedHuffmanCodes := vector.New()
+
+        for i := 0; i &lt; uncompressed.Size(); i++ </span><span class="cov8" title="1">{
+                byt := uncompressed.MustGet(i)
+
+                iCode, _ := codes.Get(byt)
+                code := iCode.(*vector.Vector)
+
+                for j := 0; j &lt; code.Size(); j++ </span><span class="cov8" title="1">{
+                        encodedHuffmanCodes.Append(code.MustGet(j))
+                }</span>
+        }
+
+        <span class="cov8" title="1">return encodedHuffmanCodes</span>
+}
+
+func compressHuffmanCodes(codes *vector.Vector) (compressedCodes *vector.Vector, lastByteInBits int) <span class="cov8" title="1">{
+        currentCode := vector.New(0, 8)
+        encodedCode := byte(0)
+        totalBits := 0
+
+        compressedCodes = vector.New()
+
+        for i := 0; i &lt; codes.Size(); i++ </span><span class="cov8" title="1">{
+                currentCode.Append(codes.MustGet(i))
+
+                if currentCode.Size() == 8 || i == codes.Size()-1 </span><span class="cov8" title="1">{
+                        for j := 0; j &lt; currentCode.Size(); j++ </span><span class="cov8" title="1">{
+                                totalBits++
+
+                                if currentCode.MustGet(j) == byte(0) </span><span class="cov8" title="1">{
+                                        encodedCode &lt;&lt;= 1
+                                }</span> else<span class="cov8" title="1"> {
+                                        encodedCode &lt;&lt;= 1
+                                        encodedCode |= 1
+                                }</span>
+                        }
+
+                        <span class="cov8" title="1">compressedCodes.Append(encodedCode)
+                        currentCode = vector.New(0, 8)
+                        encodedCode = byte(0)</span>
+                }
+        }
+
+        <span class="cov8" title="1">lastByteInBits = totalBits % 8
+        if lastByteInBits == 0 </span><span class="cov0" title="0">{
+                lastByteInBits = 8
+        }</span>
+
+        <span class="cov8" title="1">return compressedCodes, lastByteInBits</span>
+}
+
+func isLeafNode(n *huffmanTreeNode) bool <span class="cov8" title="1">{
+        return n != nil &amp;&amp; n.left == nil &amp;&amp; n.right == nil
+}</span>
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">// Package linkedlist implements a singly linked list.
+package linkedlist
+
+type node struct {
+        value interface{}
+        next  *node
+}
+
+// LinkedList is the main structure of the linked list.
+type LinkedList struct {
+        head *node
+        tail *node
+        size int
+}
+
+// New returns a pointer to a new LinkedList and sets root as the head and tail nodes.
+func New(root interface{}) *LinkedList <span class="cov8" title="1">{
+        n := &amp;node{value: root}
+
+        return &amp;LinkedList{
+                head: n,
+                tail: n,
+                size: 1,
+        }
+}</span>
+
+// Append appends the given value to the end of the list.
+func (ll *LinkedList) Append(value interface{}) <span class="cov8" title="1">{
+        newNode := &amp;node{value: value}
+
+        if ll.size == 0 </span><span class="cov8" title="1">{
+                ll.head = newNode
+                ll.tail = newNode
+        }</span> else<span class="cov8" title="1"> {
+                ll.tail.next = newNode
+                ll.tail = newNode
+        }</span>
+
+        <span class="cov8" title="1">ll.size++</span>
+}
+
+// Remove removes value from the linked list.
+func (ll *LinkedList) Remove(value interface{}) <span class="cov8" title="1">{
+        if ll.head.value == value </span><span class="cov8" title="1">{
+                ll.head = ll.head.next
+        }</span>
+
+        <span class="cov8" title="1">removed := ll.remove(ll.head, value)
+        if removed </span><span class="cov8" title="1">{
+                ll.size--
+        }</span>
+}
+
+// Find finds the given value from the linked list and returns it if found.
+// A boolean value is returned indicating whether or not the value actually
+// exists in the linked list.
+func (ll *LinkedList) Find(value interface{}) (interface{}, bool) <span class="cov8" title="1">{
+        result := find(ll.head, value)
+        if result == nil </span><span class="cov8" title="1">{
+                return nil, false
+        }</span>
+
+        <span class="cov8" title="1">return result.value, true</span>
+}
+
+// Head returns the head of the linked list.
+func (ll *LinkedList) Head() interface{} <span class="cov8" title="1">{
+        if ll.head == nil </span><span class="cov8" title="1">{
+                return nil
+        }</span>
+
+        <span class="cov8" title="1">return ll.head.value</span>
+}
+
+// Tail returns the tail of the linked list.
+func (ll *LinkedList) Tail() interface{} <span class="cov8" title="1">{
+        if ll.tail == nil </span><span class="cov8" title="1">{
+                return nil
+        }</span>
+
+        <span class="cov8" title="1">return ll.tail.value</span>
+}
+
+// Size returns the number of elements in the linked list.
+func (ll *LinkedList) Size() int <span class="cov8" title="1">{
+        return ll.size
+}</span>
+
+// ForEach executes f for each element in the list.
+func (ll *LinkedList) ForEach(f func(val interface{})) <span class="cov8" title="1">{
+        execFunc(ll.head, f)
+}</span>
+
+func (ll *LinkedList) remove(n *node, val interface{}) bool <span class="cov8" title="1">{
+        if n == nil || n.next == nil </span><span class="cov8" title="1">{
+                return false
+        }</span>
+
+        <span class="cov8" title="1">if n.next.value == val </span><span class="cov8" title="1">{
+                if n.next == ll.tail </span><span class="cov8" title="1">{
+                        ll.tail = n
+                }</span>
+
+                <span class="cov8" title="1">n.next = n.next.next
+                return true</span>
+        }
+
+        <span class="cov8" title="1">return ll.remove(n.next, val)</span>
+}
+
+func execFunc(n *node, f func(val interface{})) <span class="cov8" title="1">{
+        if n == nil </span><span class="cov8" title="1">{
+                return
+        }</span>
+
+        <span class="cov8" title="1">f(n.value)
+
+        execFunc(n.next, f)</span>
+}
+
+func find(n *node, val interface{}) *node <span class="cov8" title="1">{
+        if n == nil </span><span class="cov8" title="1">{
+                return nil
+        }</span>
+
+        <span class="cov8" title="1">if n.value == val </span><span class="cov8" title="1">{
+                return n
+        }</span>
+
+        <span class="cov8" title="1">return find(n.next, val)</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">// Package lzw implements the Lempel-Ziv-Welch lossless data compression algorithm.
+package lzw
+
+import (
+        "errors"
+        "fmt"
+
+        "github.com/mjjs/gompressor/dictionary"
+        "github.com/mjjs/gompressor/vector"
 )
+
+// DictionarySize determines how large the dictionary used in compression can
+// grow before needing to be reset. Larger values result in more efficient
+// compression.
+type DictionarySize uint16
+
+// Dictionary sizes
+const (
+        XS DictionarySize = 512
+        S                 = 1023
+        M                 = 4095
+        L                 = 32767
+        XL                = 65535
+)
+
+const initialDictSize uint16 = 255
 
 // ErrBadCompressedCode represents an error that occurs when the LZW decompression
 // algorithm finds a code that is not valid for the assumed compression algorithm.
 var ErrBadCompressedCode = errors.New("bad compression code")
 
-// Compress takes a slice of uncompressed bytes as input and returns a slice of
-// LZW codes that represent the compressed data.
-func Compress(uncompressed *vector.Vector) (*vector.Vector, error) <span class="cov8" title="1">{
-        createInitialDictionary := func() *dictionary.Dictionary </span><span class="cov8" title="1">{
-                dict := dictionary.NewWithSize(uint(initialDictSize))
+var ErrInvalidDictionarySize = errors.New("invalid dictionary size")
 
-                for i := uint16(0); i &lt; initialDictSize; i++ </span><span class="cov8" title="1">{
-                        dict.Set(string([]byte{byte(i)}), i)
-                }</span>
+// CompressWithDictSize takes a slice of uncompressed bytes and a dictionary size
+// as input and returns a slice of LZW codes that represent the compressed data.
+// This is mostly a utility function for testing how the dictionary size changes
+// the compression level.
+func CompressWithDictSize(uncompressed *vector.Vector, size DictionarySize) (*vector.Vector, error) <span class="cov8" title="1">{
+        if !isValidDictionarySize(uint16(size)) </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("%w: %d", ErrInvalidDictionarySize, int(size))
+        }</span>
 
-                <span class="cov8" title="1">return dict</span>
-        }
+        <span class="cov8" title="1">if uncompressed.Size() == 0 </span><span class="cov8" title="1">{
+                return uncompressed, nil
+        }</span>
 
-        <span class="cov8" title="1">dict := createInitialDictionary()
+        <span class="cov8" title="1">dict := createInitialCompressDictionary()
 
         compressed := vector.New()
+        compressed.Append(uint16(size))
+
         word := vector.New()
 
         for i := 0; i &lt; uncompressed.Size(); i++ </span><span class="cov8" title="1">{
-                if dict.Size() == int(maxDictSize) </span><span class="cov0" title="0">{
-                        dict = createInitialDictionary()
+                if dict.Size() == int(size) </span><span class="cov8" title="1">{
+                        dict = createInitialCompressDictionary()
                 }</span>
 
                 <span class="cov8" title="1">byt := uncompressed.MustGet(i)
@@ -716,30 +744,32 @@ func Compress(uncompressed *vector.Vector) (*vector.Vector, error) <span class="
         <span class="cov8" title="1">return compressed, nil</span>
 }
 
+// Compress is a shortcut for compressing with the largest dictionary size.
+func Compress(uncompressed *vector.Vector) (*vector.Vector, error) <span class="cov8" title="1">{
+        return CompressWithDictSize(uncompressed, XL)
+}</span>
+
 // Decompress takes in a slice of LZW codes representing some compressed data
 // and outputs the decompressed data as a slice of bytes.
 // An error is returned if the decompression algorithm finds a bad LZW code.
 func Decompress(compressed *vector.Vector) (*vector.Vector, error) <span class="cov8" title="1">{
-        createInitialDictionary := func() *dictionary.Dictionary </span><span class="cov8" title="1">{
-                dict := dictionary.NewWithSize(uint(initialDictSize))
+        if compressed.Size() == 0 </span><span class="cov8" title="1">{
+                return compressed, nil
+        }</span>
 
-                for i := uint16(0); i &lt; initialDictSize; i++ </span><span class="cov8" title="1">{
-                        bv := vector.New(1)
-                        bv.MustSet(0, byte(i))
-                        dict.Set(i, bv)
-                }</span>
+        <span class="cov8" title="1">size := compressed.MustGet(0).(uint16)
+        if !isValidDictionarySize(size) </span><span class="cov8" title="1">{
+                return nil, fmt.Errorf("the data is compressed with an invalid dictionary size %d", size)
+        }</span>
 
-                <span class="cov8" title="1">return dict</span>
-        }
-
-        <span class="cov8" title="1">dict := createInitialDictionary()
+        <span class="cov8" title="1">dict := createInitialDecompressDictionary()
 
         result := vector.New()
         word := vector.New()
 
-        for i := 0; i &lt; compressed.Size(); i++ </span><span class="cov8" title="1">{
-                if dict.Size() == int(maxDictSize) </span><span class="cov0" title="0">{
-                        dict = createInitialDictionary()
+        for i := 1; i &lt; compressed.Size(); i++ </span><span class="cov8" title="1">{
+                if dict.Size() == int(size) </span><span class="cov8" title="1">{
+                        dict = createInitialDecompressDictionary()
                 }</span>
 
                 <span class="cov8" title="1">code := compressed.MustGet(i)
@@ -755,7 +785,7 @@ func Decompress(compressed *vector.Vector) (*vector.Vector, error) <span class="
                         }</span>
                 } else<span class="cov8" title="1"> if int(code.(uint16)) == dict.Size() &amp;&amp; word.Size() &gt; 0 </span><span class="cov8" title="1">{
                         entry = word.AppendToCopy(word.MustGet(0))
-                }</span> else<span class="cov0" title="0"> {
+                }</span> else<span class="cov8" title="1"> {
                         return nil, fmt.Errorf("%w: %d", ErrBadCompressedCode, code)
                 }</span>
 
@@ -772,6 +802,42 @@ func Decompress(compressed *vector.Vector) (*vector.Vector, error) <span class="
         }
 
         <span class="cov8" title="1">return result, nil</span>
+}
+
+func createInitialCompressDictionary() *dictionary.Dictionary <span class="cov8" title="1">{
+        dict := dictionary.NewWithSize(uint(initialDictSize))
+
+        for i := uint16(0); i &lt;= initialDictSize; i++ </span><span class="cov8" title="1">{
+                dict.Set(string([]byte{byte(i)}), i)
+        }</span>
+
+        <span class="cov8" title="1">return dict</span>
+}
+
+func createInitialDecompressDictionary() *dictionary.Dictionary <span class="cov8" title="1">{
+        dict := dictionary.NewWithSize(uint(initialDictSize))
+
+        for i := uint16(0); i &lt;= initialDictSize; i++ </span><span class="cov8" title="1">{
+                bv := vector.New(1)
+                bv.MustSet(0, byte(i))
+                dict.Set(i, bv)
+        }</span>
+
+        <span class="cov8" title="1">return dict</span>
+}
+
+func isValidDictionarySize(size uint16) bool <span class="cov8" title="1">{
+        validSizes := []DictionarySize{
+                XS, S, M, L, XL,
+        }
+
+        for _, dictionarySize := range validSizes </span><span class="cov8" title="1">{
+                if dictionarySize == DictionarySize(size) </span><span class="cov8" title="1">{
+                        return true
+                }</span>
+        }
+
+        <span class="cov8" title="1">return false</span>
 }
 </pre>
 		
@@ -878,7 +944,8 @@ func (pq *PriorityQueue) swap(i, j int) <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file5" style="display: none">package vector
+		<pre class="file" id="file5" style="display: none">// Package vector implements a dynamically growing array list.
+package vector
 
 import (
         "errors"

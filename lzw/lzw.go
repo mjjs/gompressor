@@ -29,13 +29,19 @@ const initialDictSize uint16 = 255
 // algorithm finds a code that is not valid for the assumed compression algorithm.
 var ErrBadCompressedCode = errors.New("bad compression code")
 
+var ErrInvalidDictionarySize = errors.New("invalid dictionary size")
+
 // CompressWithDictSize takes a slice of uncompressed bytes and a dictionary size
 // as input and returns a slice of LZW codes that represent the compressed data.
 // This is mostly a utility function for testing how the dictionary size changes
 // the compression level.
-func CompressWithDictSize(uncompressed *vector.Vector, size DictionarySize) *vector.Vector {
+func CompressWithDictSize(uncompressed *vector.Vector, size DictionarySize) (*vector.Vector, error) {
+	if !isValidDictionarySize(uint16(size)) {
+		return nil, fmt.Errorf("%w: %d", ErrInvalidDictionarySize, int(size))
+	}
+
 	if uncompressed.Size() == 0 {
-		return uncompressed
+		return uncompressed, nil
 	}
 
 	dict := createInitialCompressDictionary()
@@ -73,11 +79,11 @@ func CompressWithDictSize(uncompressed *vector.Vector, size DictionarySize) *vec
 		compressed.Append(code.(uint16))
 	}
 
-	return compressed
+	return compressed, nil
 }
 
 // Compress is a shortcut for compressing with the largest dictionary size.
-func Compress(uncompressed *vector.Vector) *vector.Vector {
+func Compress(uncompressed *vector.Vector) (*vector.Vector, error) {
 	return CompressWithDictSize(uncompressed, XL)
 }
 

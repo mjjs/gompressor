@@ -17,7 +17,10 @@ var dictionarySizes = []DictionarySize{
 
 func TestCompressReturnsEmptyVectorOnEmptyInput(t *testing.T) {
 	input := vector.New()
-	actual := Compress(input)
+	actual, err := Compress(input)
+	if err != nil {
+		t.Errorf("Expected nil error, got %s", err)
+	}
 
 	if !reflect.DeepEqual(input, actual) {
 		t.Errorf("Expected %v, got %v", input, actual)
@@ -45,7 +48,11 @@ func TestCompressEncodesDictionarySizeToOutput(t *testing.T) {
 	}
 
 	for _, dictionarySize := range dictionarySizes {
-		compressed := CompressWithDictSize(input, dictionarySize)
+		compressed, err := CompressWithDictSize(input, dictionarySize)
+		if err != nil {
+			t.Errorf("Expected nil error, got %s", err)
+		}
+
 		if DictionarySize(compressed.MustGet(0).(uint16)) != dictionarySize {
 			t.Errorf("Expected %v, got %v", dictionarySize, compressed.MustGet(0))
 		}
@@ -79,7 +86,10 @@ func TestDecompressedEqualsOriginal(t *testing.T) {
 	}
 
 	for _, dictionarySize := range dictionarySizes {
-		compressed := CompressWithDictSize(input, dictionarySize)
+		compressed, err := CompressWithDictSize(input, dictionarySize)
+		if err != nil {
+			t.Errorf("Expected nil error, got %s", err)
+		}
 
 		decompressed, err := Decompress(compressed)
 		if err != nil {
