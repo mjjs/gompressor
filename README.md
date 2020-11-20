@@ -22,3 +22,8 @@ Golang implementations of the LZM and Huffman code algorithms for lossless data 
 
 ### Acknowledgments
 * Testdata from https://corpus.canterbury.ac.nz/
+
+### Peer review information
+If you have Go installed and have worked with it before, carry on. Otherwise,
+see the [release](https://github.com/mjjs/gompressor/releases/tag/peer-review)
+that includes 64bit binaries of the application for Linux, Windows and Mac OSX.
