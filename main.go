@@ -23,7 +23,7 @@ func main() {
 	flag.Parse()
 
 	if !*compressFlag && !*decompressFlag {
-		log.Fatal("No -encode or -decode flag given")
+		log.Fatal("No -compress or -decompress flag given")
 	} else if *compressFlag && *decompressFlag {
 		log.Fatal("Cannot use -compress and -decompress flag at the same time")
 	} else if *algorithm == "" {
