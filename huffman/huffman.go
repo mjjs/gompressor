@@ -53,7 +53,7 @@ func Compress(uncompressed *vector.Vector) *vector.Vector {
 // of uncompressed bytes. Returns a non-nil error if the decompression fails.
 func Decompress(compressed *vector.Vector) (*vector.Vector, error) {
 	if compressed.Size() == 0 {
-		return nil, errors.New("unable to decompress empty data")
+		return compressed, nil
 	}
 
 	lastByteInBits := int(compressed.MustGet(0).(byte))

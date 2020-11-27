@@ -68,6 +68,15 @@ func TestDecompressReturnsErrorOnBadlyCompressedData(t *testing.T) {
 	}
 }
 
+func TestCompressWithDictSizeReturnsErrorOnIncorrectDictionarySize(t *testing.T) {
+	input := vector.New().AppendToCopy(uint16(1), uint16(2), uint16(3))
+
+	_, err := CompressWithDictSize(input, DictionarySize(500))
+	if err == nil {
+		t.Error("Expected non-nil error, got nil")
+	}
+}
+
 func TestDecompressReturnsErrorOnIncorrectDictionarySize(t *testing.T) {
 	input := vector.New().AppendToCopy(uint16(92), uint16(1), uint16(2), uint16(3))
 
