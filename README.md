@@ -15,6 +15,7 @@ Golang implementations of the LZM and Huffman code algorithms for lossless data 
 * [Week 2](./doc/weeklyreport2.md)
 * [Week 3](./doc/weeklyreport3.md)
 * [Week 4](./doc/weeklyreport4.md)
+* [Week 5](./doc/weeklyreport5.md)
 
 ### Test coverage
 * Online - https://coveralls.io/github/mjjs/gompressor?branch=master
