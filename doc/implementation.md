@@ -2,7 +2,8 @@
 
 ## Project structure
 All the code in this project are separated in their own packages, which are named
-after what they implement.
+after what they implement. The algorithms can be found in the `algorithm` directory
+and the data structures in the `datastructure` directory.
 
 ### Data structures
 
