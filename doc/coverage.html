@@ -57,11 +57,11 @@
 				
 				<option value="file0">github.com/mjjs/gompressor/dictionary/dictionary.go (91.4%)</option>
 				
-				<option value="file1">github.com/mjjs/gompressor/huffman/huffman.go (97.4%)</option>
+				<option value="file1">github.com/mjjs/gompressor/huffman/huffman.go (99.1%)</option>
 				
 				<option value="file2">github.com/mjjs/gompressor/linkedlist/linkedlist.go (100.0%)</option>
 				
-				<option value="file3">github.com/mjjs/gompressor/lzw/lzw.go (98.6%)</option>
+				<option value="file3">github.com/mjjs/gompressor/lzw/lzw.go (100.0%)</option>
 				
 				<option value="file4">github.com/mjjs/gompressor/priorityqueue/priorityqueue.go (100.0%)</option>
 				
@@ -320,8 +320,8 @@ func Compress(uncompressed *vector.Vector) *vector.Vector <span class="cov8" tit
 // Decompress takes in a vector of huffman compressed bytes and outputs a vector
 // of uncompressed bytes. Returns a non-nil error if the decompression fails.
 func Decompress(compressed *vector.Vector) (*vector.Vector, error) <span class="cov8" title="1">{
-        if compressed.Size() == 0 </span><span class="cov0" title="0">{
-                return nil, errors.New("unable to decompress empty data")
+        if compressed.Size() == 0 </span><span class="cov8" title="1">{
+                return compressed, nil
         }</span>
 
         <span class="cov8" title="1">lastByteInBits := int(compressed.MustGet(0).(byte))
@@ -464,7 +464,7 @@ func decodeHuffmanCode(codes *vector.Vector, index int, root *huffmanTreeNode, t
                 return decodeHuffmanCode(codes, index+1, root.left, to)</span>
         case byte(1):<span class="cov8" title="1">
                 return decodeHuffmanCode(codes, index+1, root.right, to)</span>
-        default:<span class="cov0" title="0">
+        default:<span class="cov8" title="1">
                 return 0, fmt.Errorf("An unexpected symbol %x found in the compressed data", next)</span>
         }
 }
@@ -698,7 +698,7 @@ var ErrInvalidDictionarySize = errors.New("invalid dictionary size")
 // This is mostly a utility function for testing how the dictionary size changes
 // the compression level.
 func CompressWithDictSize(uncompressed *vector.Vector, size DictionarySize) (*vector.Vector, error) <span class="cov8" title="1">{
-        if !isValidDictionarySize(uint16(size)) </span><span class="cov0" title="0">{
+        if !isValidDictionarySize(uint16(size)) </span><span class="cov8" title="1">{
                 return nil, fmt.Errorf("%w: %d", ErrInvalidDictionarySize, int(size))
         }</span>
 
