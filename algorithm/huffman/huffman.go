@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mjjs/gompressor/dictionary"
-	"github.com/mjjs/gompressor/priorityqueue"
-	"github.com/mjjs/gompressor/vector"
+	"github.com/mjjs/gompressor/datastructure/dictionary"
+	"github.com/mjjs/gompressor/datastructure/priorityqueue"
+	"github.com/mjjs/gompressor/datastructure/vector"
 )
 
 type huffmanTreeNode struct {

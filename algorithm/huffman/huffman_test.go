@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/mjjs/gompressor/vector"
+	"github.com/mjjs/gompressor/datastructure/vector"
 )
 
 func TestCreateFrequencyTable(t *testing.T) {

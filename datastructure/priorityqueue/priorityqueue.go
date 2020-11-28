@@ -3,7 +3,7 @@
 package priorityqueue
 
 import (
-	"github.com/mjjs/gompressor/vector"
+	"github.com/mjjs/gompressor/datastructure/vector"
 )
 
 type node struct {

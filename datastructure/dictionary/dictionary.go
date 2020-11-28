@@ -4,8 +4,8 @@
 package dictionary
 
 import (
-	"github.com/mjjs/gompressor/linkedlist"
-	"github.com/mjjs/gompressor/vector"
+	"github.com/mjjs/gompressor/datastructure/linkedlist"
+	"github.com/mjjs/gompressor/datastructure/vector"
 )
 
 const defaultSize uint = 32

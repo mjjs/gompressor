@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mjjs/gompressor/dictionary"
-	"github.com/mjjs/gompressor/vector"
+	"github.com/mjjs/gompressor/datastructure/dictionary"
+	"github.com/mjjs/gompressor/datastructure/vector"
 )
 
 // DictionarySize determines how large the dictionary used in compression can

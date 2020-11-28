@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mjjs/gompressor/vector"
+	"github.com/mjjs/gompressor/datastructure/vector"
 )
 
 func WriteLZWFile(codes *vector.Vector, filename string) error {

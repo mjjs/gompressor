@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/mjjs/gompressor/algorithm/huffman"
+	"github.com/mjjs/gompressor/algorithm/lzw"
+	"github.com/mjjs/gompressor/datastructure/vector"
 	"github.com/mjjs/gompressor/fileio"
-	"github.com/mjjs/gompressor/huffman"
-	"github.com/mjjs/gompressor/lzw"
-	"github.com/mjjs/gompressor/vector"
 	"github.com/rivo/tview"
 )
 
