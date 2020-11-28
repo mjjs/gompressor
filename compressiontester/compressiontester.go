@@ -40,6 +40,10 @@ var lzwDictSizes = []lzw.DictionarySize{
 	lzw.XS, lzw.S, lzw.M, lzw.L, lzw.XL,
 }
 
+var testSizes = []int{
+	1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152,
+}
+
 func main() {
 	parallel := flag.Bool("parallel", false, "Run tests in parallel")
 	flag.Parse()
@@ -55,33 +59,45 @@ func main() {
 			panic(err)
 		}
 
-		filename := strings.Split(filepath, "/")[2]
-		log.Printf("Running tests for file %s", filename)
+		for i := 0; i < len(testSizes)+1; i++ {
+			var n int
 
-		for _, dictSize := range lzwDictSizes {
+			if i == len(testSizes) {
+				n = byteVector.Size()
+			} else {
+				n = testSizes[i]
+			}
+
+			bytes := getNBytes(byteVector, n)
+
+			filename := strings.Split(filepath, "/")[2]
+			log.Printf("Running tests for %d bytes of file %s", bytes.Size(), filename)
+
+			for _, dictSize := range lzwDictSizes {
+				if *parallel {
+					wg.Add(1)
+					go func(ds lzw.DictionarySize) {
+						result := testLZW(filename, ds, bytes)
+						lzwResults = append(lzwResults, result)
+						wg.Done()
+					}(dictSize)
+				} else {
+					result := testLZW(filename, dictSize, bytes)
+					lzwResults = append(lzwResults, result)
+				}
+			}
+
 			if *parallel {
 				wg.Add(1)
-				go func(ds lzw.DictionarySize) {
-					result := testLZW(filename, ds, byteVector)
-					lzwResults = append(lzwResults, result)
+				go func() {
+					huffmanResult := testHuffman(filename, bytes)
+					huffmanResults = append(huffmanResults, huffmanResult)
 					wg.Done()
-				}(dictSize)
+				}()
 			} else {
-				result := testLZW(filename, dictSize, byteVector)
-				lzwResults = append(lzwResults, result)
-			}
-		}
-
-		if *parallel {
-			wg.Add(1)
-			go func() {
-				huffmanResult := testHuffman(filename, byteVector)
+				huffmanResult := testHuffman(filename, bytes)
 				huffmanResults = append(huffmanResults, huffmanResult)
-				wg.Done()
-			}()
-		} else {
-			huffmanResult := testHuffman(filename, byteVector)
-			huffmanResults = append(huffmanResults, huffmanResult)
+			}
 		}
 	}
 
@@ -161,6 +177,10 @@ func readTestFile(fn string) (*vector.Vector, error) {
 }
 
 func getNBytes(from *vector.Vector, n int) *vector.Vector {
+	if n > from.Size() {
+		return from
+	}
+
 	newVector := vector.New(uint(n))
 	for i := 0; i < n; i++ {
 		newVector.MustSet(i, from.MustGet(i))
