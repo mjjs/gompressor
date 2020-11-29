@@ -28,17 +28,19 @@ The random data has been generated with the command `head -c 2000000 </dev/urand
 ### Results
 
 #### Lempel-Ziv-Welch
-First I tested how the dictionary size of the LZW algorithm affects the algorithm.
+First I tested how the dictionary size of the LZW algorithm affects the compression ratio.
 Here in the table we can see the results on compressing the E.coli text file
 with LZW using different dictionary sizes.
 
-dictionary size | original size (bytes) | compressed size (bytes) | compression ratio (% of original) | compress time (µs)
+dictionary size | original size (bytes) | compressed size (bytes) | % of original size                | compress time (µs)
 ----------------|-----------------------|-------------------------|-----------------------------------|--------------
 512             | 4,638,690             | 3,184,280               | 68.65                             | 4,160,141
 1023            | 4,638,690             | 2,523,088               | 54.39                             | 3,414,906
 4095            | 4,638,690             | 1,917,598               | 41.34                             | 3,336,908
 32767           | 4,638,690             | 1,448,820               | 31.23                             | 3,810,436
 65535           | 4,638,690             | 1,342,580               | 28.94                             | 4,215,383
+
+![LZW dictionary size versus compress ratio](./lzw_dict_size_vs_compress_ratio.png)
 
 As we can see, the compression ratio improves noticeably when growing the dictionary size.
 The rest of the tests will be using the largest dictionary size.
@@ -47,7 +49,7 @@ Now, lets compare how the different files affect the algorithm's compression rat
 has lots of repetition, whereas a file filled with random data contains next to no repetition.  The CIA
 world fact book is "regular" english text, so it will stand somewhere between the other two files.
 
-filename     | original size (bytes) | compressed size (bytes)   | compression ratio (% of original) | compress time (µs)
+filename     | original size (bytes) | compressed size (bytes)   | % of original size                | compress time (µs)
 -------------|-----------------------|---------------------------|-----------------------------------|------------------
 E.coli       | 4,638,690             | 1,342,580                 | 28.94                             | 4,215,383
 world192.txt | 2,473,400             | 1,076,126                 | 43.51                             | 8,248,130
@@ -61,7 +63,7 @@ with repetition.
 
 Finally, let's see how the input file size affects the compression time and ratio for the LZW algorithm.
 
-filename       | original size (bytes)  | compressed size (bytes) | compression ratio (% of original) | compress time (µs)
+filename       | original size (bytes)  | compressed size (bytes) | % of original size                | compress time (µs)
 ---------------|------------------------|-------------------------|-----------------------------------|-------------------
 world192.txt   | 1,024                  | 1,208                   | 117.97                            | 8,02
 world192.txt   | 2,048                  | 2,206                   | 107.71                            | 1,465
@@ -77,13 +79,15 @@ world192.txt   | 1,048,576              | 4,664,96                | 44.49       
 world192.txt   | 2,097,152              | 9,125,52                | 43.51                             | 2,073,592
 world192.txt   | 2,473,400              | 1,076,126               | 43.51                             | 2,377,361
 
+![LZW input size versus compress ratio](./lzw_input_size_vs_compress_ratio.png)
+
 From the results, we can observe that the LZW algorithm actually works better for larger inputs.
 
 #### Huffman
 As there are no parameters to change in the Huffman compressing algorithm (at least my implementation),
 I started by seeing how the different kinds of data affect the compression ratio of the algorithm.
 
-filename       | original size (bytes)  | compressed size (bytes) | compression ratio (% of original) | compress time (µs)
+filename       | original size (bytes)  | compressed size (bytes) | % of original size                | compress time (µs)
 ---------------|------------------------|-------------------------|-----------------------------------|-------------------
 E.coli         | 4,638,690              | 1,159,685               | 25.00                             | 2,932,067
 world192.txt   | 2,473,400              | 1,558,877               | 63.03                             | 2,495,041
@@ -97,7 +101,7 @@ time compared to LZW. My implementation of the LZW is most likely at fault here,
 
 Next, let's inspect how the size of the original data affects the compression time and ratio of the Huffman algorithm.
 
-filename       | original size (bytes)  | compressed size (bytes) | compression ratio (% of original) | compress time (µs)
+filename       | original size (bytes)  | compressed size (bytes) | % of original size                | compress time (µs)
 ---------------|------------------------|-------------------------|-----------------------------------|-------------------
 world192.txt   |      1,024             | 819                     | 79.98                             | 380
 world192.txt   |      2,048             | 1,515                   | 73.97                             | 645
@@ -113,5 +117,7 @@ world192.txt   |      1,048,576         | 6,620,16                | 63.13       
 world192.txt   |      2,097,152         | 1,323,510               | 63.11                             | 6,995,93
 world192.txt   |      2,473,400         | 1,558,877               | 63.03                             | 7,396,87
 
-We can see that the compression ratio stays quite conistent across different input sixes. The compress time, however
+![Huffman input size versus compress ratio](./huffman_input_size_vs_compress_ratio.png)
+
+We can see that the compression ratio stays quite conistent across different input sizes. The compress time, however
 grows quite drastically.
