@@ -29,6 +29,9 @@ const initialDictSize uint16 = 255
 // algorithm finds a code that is not valid for the assumed compression algorithm.
 var ErrBadCompressedCode = errors.New("bad compression code")
 
+// ErrInvalidDictionarySize represents an error indicating usage of an invalid
+// dictionary size. This can happen when attempting to compress or decompress
+// data.
 var ErrInvalidDictionarySize = errors.New("invalid dictionary size")
 
 // CompressWithDictSize takes a slice of uncompressed bytes and a dictionary size
@@ -36,7 +39,7 @@ var ErrInvalidDictionarySize = errors.New("invalid dictionary size")
 // This is mostly a utility function for testing how the dictionary size changes
 // the compression level.
 func CompressWithDictSize(uncompressed *vector.Vector, size DictionarySize) (*vector.Vector, error) {
-	if !isValidDictionarySize(uint16(size)) {
+	if !isValidDictionarySize(size) {
 		return nil, fmt.Errorf("%w: %d", ErrInvalidDictionarySize, int(size))
 	}
 
@@ -96,7 +99,7 @@ func Decompress(compressed *vector.Vector) (*vector.Vector, error) {
 	}
 
 	size := compressed.MustGet(0).(uint16)
-	if !isValidDictionarySize(size) {
+	if !isValidDictionarySize(DictionarySize(size)) {
 		return nil, fmt.Errorf("the data is compressed with an invalid dictionary size %d", size)
 	}
 
@@ -164,13 +167,13 @@ func createInitialDecompressDictionary() *dictionary.Dictionary {
 	return dict
 }
 
-func isValidDictionarySize(size uint16) bool {
+func isValidDictionarySize(size DictionarySize) bool {
 	validSizes := []DictionarySize{
 		XS, S, M, L, XL,
 	}
 
 	for _, dictionarySize := range validSizes {
-		if dictionarySize == DictionarySize(size) {
+		if dictionarySize == size {
 			return true
 		}
 	}
