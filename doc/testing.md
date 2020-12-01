@@ -1,4 +1,4 @@
-# Testing documentation - WORK IN PROGRESS
+# Testing documentation
 ## Unit testing
 The unit tests are written using Golang's own testing functionality. All the data
 structures and core algorithms have tests to verify their functionality, and

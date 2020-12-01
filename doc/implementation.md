@@ -1,4 +1,4 @@
-# Implementation documentation - WORK IN PROGRESS
+# Implementation documentation
 
 ## Project structure
 All the code in this project are separated in their own packages, which are named
@@ -48,14 +48,13 @@ by walking the tree and appending 0 or 1 to the code depending on which leaf the
 algorithm follows. These codes are then used to compress the original bytes. Finally,
 the prefix tree along with the huffman codes are written to the output vector.
 
-#### File I/O
-to be written
-
 ### Time complexities
 
 #### Lempel-Ziv-Welch
-The time complexity of the algorithm is O(n), as the input is only iterated once,
-and the codes are calculated in effectively O(1) time.
+During compression, the time complexity of the algorithm is O(n), as the input
+is only iterated once, and the codes are calculated in effectively O(1) time.
+The decompression also works by linearly going through the input and re-creating
+the codes in O(1) time.
 
 #### Huffman
 The building of the tree is done in O(n log n) time, and going through each byte
