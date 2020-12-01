@@ -21,11 +21,12 @@ filename | size | description
 ---------|------|------------
 E.coli | 4,638,690 bytes | The complete genome of the E. Coli bacterium. Highly repetitive data.
 world192.txt | 2,473,400 bytes | The CIA world fact book.
-Randomdata | 2000000 bytes | Random bytes for testing patternless compression.
+Randomdata | 2,000,000 bytes | Random bytes for testing patternless compression.
 
 The random data has been generated with the command `head -c 2000000 </dev/urandom >Randomdata`.
 
 ### Results
+The compression tester has been run five times and the results have been averaged.
 
 #### Lempel-Ziv-Welch
 First I tested how the dictionary size of the LZW algorithm affects the compression ratio.
@@ -83,6 +84,7 @@ world192.txt   | 2,473,400              | 1,076,126               | 43.51       
 
 From the results, we can observe that the LZW algorithm actually works better for larger inputs.
 
+---
 #### Huffman
 As there are no parameters to change in the Huffman compressing algorithm (at least my implementation),
 I started by seeing how the different kinds of data affect the compression ratio of the algorithm.
