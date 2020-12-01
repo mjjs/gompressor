@@ -49,7 +49,7 @@ func CompressWithDictSize(uncompressed *vector.Vector, size DictionarySize) (*ve
 
 	dict := createInitialCompressDictionary()
 
-	compressed := vector.New()
+	compressed := vector.New(0, uint(uncompressed.Size()))
 	compressed.Append(uint16(size))
 
 	word := vector.New()
@@ -63,11 +63,7 @@ func CompressWithDictSize(uncompressed *vector.Vector, size DictionarySize) (*ve
 		newWord := word.AppendToCopy(byt)
 
 		if _, ok := dict.Get(newWord.String()); ok {
-			word = vector.New(uint(newWord.Size()))
-
-			for j := 0; j < newWord.Size(); j++ {
-				word.MustSet(j, newWord.MustGet(j))
-			}
+			word = newWord
 		} else {
 			code, _ := dict.Get(word.String())
 			compressed.Append(code.(uint16))
