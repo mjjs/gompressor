@@ -14,3 +14,5 @@ Continuing to write documentation and finishing the project up.
 time | activity |
 -----|----------|
   2h | Finishing up the testing documentation |
+  0.5h | Finishing up implementation documentation |
+  0.5h | Writing user guide |
