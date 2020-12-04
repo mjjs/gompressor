@@ -61,10 +61,9 @@ func Decompress(compressed *vector.Vector) (*vector.Vector, error) {
 	prefixTree, nextIndex := decompressPrefixTree(compressed, 1)
 	decompressed := vector.New()
 
-	var err error
-
 	codes := decompressHuffmanCodes(compressed, nextIndex, lastByteInBits)
 
+	var err error
 	nextIndex = 0
 
 	for nextIndex < codes.Size() {
@@ -78,6 +77,8 @@ func Decompress(compressed *vector.Vector) (*vector.Vector, error) {
 	return decompressed, nil
 }
 
+// createFrequencyTable takes in a vector of bytes and makes a frequency table
+// indicating how often each byte appears in the vector.
 func createFrequencyTable(bytes *vector.Vector) *dictionary.Dictionary {
 	dict := dictionary.New()
 	for i := 0; i < bytes.Size(); i++ {
@@ -93,6 +94,9 @@ func createFrequencyTable(bytes *vector.Vector) *dictionary.Dictionary {
 	return dict
 }
 
+// buildPrefixTree builds a tree-style data structure from a frequency table.
+// The table priorizes bytes that have a higher frequency. This way the most
+// often used bytes in the data get the shortest codeword when encoding.
 func buildPrefixTree(byteFrequencies *dictionary.Dictionary) *huffmanTreeNode {
 	tree := new(priorityqueue.PriorityQueue)
 	keys := byteFrequencies.Keys()
@@ -120,6 +124,10 @@ func buildPrefixTree(byteFrequencies *dictionary.Dictionary) *huffmanTreeNode {
 	return root.(*huffmanTreeNode)
 }
 
+// buildCodes traverses the prefix tree and builds a code for each unique byte found in
+// the original, uncompressed data. Each code consists of a vector of 0s and 1s.
+// A 0 indicates taking the left child of the current node and 1 the right one.
+// The codes are stored in the result dictionary, which maps each byte to the code.
 func buildCodes(root *huffmanTreeNode, code *vector.Vector, result *dictionary.Dictionary) {
 	if root == nil {
 		return
@@ -133,6 +141,9 @@ func buildCodes(root *huffmanTreeNode, code *vector.Vector, result *dictionary.D
 	buildCodes(root.right, code.AppendToCopy(byte(1)), result)
 }
 
+// compressPrefixTree takes in the root of a prefix tree and the output vector to.
+// Leaf nodes are encoded as byte 1 and the value it represents, other nodes
+// are encoded as byte 0.
 func compressPrefixTree(root *huffmanTreeNode, to *vector.Vector) {
 	switch isLeafNode(root) {
 	case true:
@@ -145,6 +156,8 @@ func compressPrefixTree(root *huffmanTreeNode, to *vector.Vector) {
 	}
 }
 
+// decompressPrefixTree goes through the compressed vector starting from index
+// and recreates the prefix tree from the encoded data.
 func decompressPrefixTree(compressed *vector.Vector, index int) (*huffmanTreeNode, int) {
 	byt := compressed.MustGet(index).(byte)
 	switch byt {
@@ -161,6 +174,9 @@ func decompressPrefixTree(compressed *vector.Vector, index int) (*huffmanTreeNod
 	}
 }
 
+// decompressHuffmanCodes takes in compressed bytes and an index where to start
+// decompressing. As all 0/1 bytes have been encoded as bits, lastByteInBits
+// indicates how many bits to read from the last byte.
 func decompressHuffmanCodes(compressed *vector.Vector, index int, lastByteInBits int) *vector.Vector {
 	huffmanCodes := vector.New(0, uint(compressed.Size()-index))
 
@@ -180,6 +196,8 @@ func decompressHuffmanCodes(compressed *vector.Vector, index int, lastByteInBits
 	return huffmanCodes
 }
 
+// decodeHuffmanCode reads a huffman code from codes at index and writes it into to.
+// Returns the index where to start reading the next code.
 func decodeHuffmanCode(codes *vector.Vector, index int, root *huffmanTreeNode, to *vector.Vector) (int, error) {
 	if root == nil {
 		return 0, errors.New("No prefix tree supplied")
@@ -201,6 +219,8 @@ func decodeHuffmanCode(codes *vector.Vector, index int, root *huffmanTreeNode, t
 	}
 }
 
+// encodeToHuffmanCodes goes through each byte in the uncompressed data and returns
+// a vector where each byte has been replaced with the huffman code it represents.
 func encodeToHuffmanCodes(uncompressed *vector.Vector, codes *dictionary.Dictionary) *vector.Vector {
 	encodedHuffmanCodes := vector.New()
 
@@ -218,6 +238,9 @@ func encodeToHuffmanCodes(uncompressed *vector.Vector, codes *dictionary.Diction
 	return encodedHuffmanCodes
 }
 
+// compressHuffmanCodes takes in huffman codes represented as a vector of 1 and 0
+// bytes. Since the bytes can only be 0 and 1, they can be compressed as bits
+// so that 8 bytes can be encoded as one byte.
 func compressHuffmanCodes(codes *vector.Vector) (compressedCodes *vector.Vector, lastByteInBits int) {
 	currentCode := vector.New(0, 8)
 	encodedCode := byte(0)
@@ -228,25 +251,27 @@ func compressHuffmanCodes(codes *vector.Vector) (compressedCodes *vector.Vector,
 	for i := 0; i < codes.Size(); i++ {
 		currentCode.Append(codes.MustGet(i))
 
-		if currentCode.Size() == 8 || i == codes.Size()-1 {
-			for j := 0; j < currentCode.Size(); j++ {
-				totalBits++
-
-				if currentCode.MustGet(j) == byte(0) {
-					encodedCode <<= 1
-				} else {
-					encodedCode <<= 1
-					encodedCode |= 1
-				}
-			}
-
-			compressedCodes.Append(encodedCode)
-			currentCode = vector.New(0, 8)
-			encodedCode = byte(0)
+		if currentCode.Size() != 8 && i != codes.Size()-1 {
+			continue
 		}
+
+		for j := 0; j < currentCode.Size(); j++ {
+			totalBits++
+
+			encodedCode <<= 1
+
+			if currentCode.MustGet(j) != byte(0) {
+				encodedCode |= 1
+			}
+		}
+
+		compressedCodes.Append(encodedCode)
+		currentCode = vector.New(0, 8)
+		encodedCode = byte(0)
 	}
 
 	lastByteInBits = totalBits % 8
+
 	if lastByteInBits == 0 {
 		lastByteInBits = 8
 	}
